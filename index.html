@@ -112,6 +112,12 @@
                 </button>
                 <div id="loginMessage" class="mt-4 text-sm text-center"></div>
                 
+                <div class="mt-6 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <p class="text-xs text-yellow-200">
+                        💡 Default password: <strong>admin123</strong><br>
+                        Change this in the script for production use!
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -339,7 +345,7 @@
         const database = firebase.database();
 
         // Admin password (change this for production!)
-        const ADMIN_PASSWORD = "Admin123456";
+        const ADMIN_PASSWORD = "admin123";
         
         let movies = [];
         let filteredMovies = [];
@@ -921,6 +927,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkAdminStatus();
             loadMoviesFromFirebase();
+            
+            // Console warning message
+            console.log('%cSTOP!', 'color: red; font-size: 80px; font-weight: bold; text-shadow: 3px 3px 0 rgb(217,31,38), 6px 6px 0 rgb(226,91,14), 9px 9px 0 rgb(245,221,8), 12px 12px 0 rgb(5,148,68), 15px 15px 0 rgb(2,135,206), 18px 18px 0 rgb(4,77,145), 21px 21px 0 rgb(42,21,113)');
+            console.log('%cGreat power comes great responsibility!', 'color: #ff0000; font-size: 24px; font-weight: bold; background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet); -webkit-background-clip: text; -webkit-text-fill-color: transparent;');
+            console.log('%c⚠️ WARNING: This is a browser feature intended for developers.', 'color: #ff6b6b; font-size: 16px; font-weight: bold;');
+            console.log('%c🚫 If someone told you to copy/paste something here, it is a scam!', 'color: #ffa500; font-size: 14px; font-weight: bold;');
+            console.log('%c🔒 Do not enter or paste any code here unless you know exactly what you are doing.', 'color: #ff0000; font-size: 14px;');
+            console.log('%c💀 You could compromise your account or device security.', 'color: #dc143c; font-size: 14px; font-weight: bold;');
         });
     </script>
 </body>
