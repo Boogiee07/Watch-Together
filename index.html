@@ -31,13 +31,6 @@
         .loading {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        .source-tab {
-            transition: all 0.2s;
-        }
-        .source-tab.active {
-            background: linear-gradient(to right, #6366f1, #8b5cf6);
-            color: white;
-        }
     </style>
 </head>
 <body class="text-white">
@@ -121,18 +114,13 @@
                             <input type="number" id="newYear" placeholder="2024" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID *</label>
                             <input type="text" id="newTmdbId" placeholder="550 (for Fight Club)" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
                         <input type="text" id="newPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Direct Movie URL (Optional)</label>
-                        <input type="text" id="newMovieUrl" placeholder="https://your-streaming-url.com/movie.mp4" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <p class="text-xs text-gray-400 mt-1">💡 Leave empty to use TMDB ID with multiple streaming sources</p>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-6">
@@ -148,11 +136,12 @@
                 <div class="mt-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
                     <p class="text-sm text-blue-200 font-semibold mb-2">📝 How to find TMDB ID:</p>
                     <ol class="text-xs text-blue-100 space-y-1 list-decimal list-inside">
-                        <li>Go to <a href="https://www.themoviedb.org/" target="_blank" class="underline">themoviedb.org</a></li>
+                        <li>Go to <a href="https://www.themoviedb.org/" target="_blank" class="underline hover:text-white">themoviedb.org</a></li>
                         <li>Search for your movie</li>
                         <li>Look at the URL: themoviedb.org/movie/<strong>TMDB_ID</strong>-movie-name</li>
                         <li>Copy the ID number and paste it above</li>
                     </ol>
+                    <p class="text-xs text-blue-100 mt-2">Example: For "Fight Club", the ID is <strong>550</strong></p>
                 </div>
             </div>
         </div>
@@ -162,7 +151,10 @@
     <div id="movieModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
         <div class="bg-gray-900 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-700">
             <div class="bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-700">
-                <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
+                <div>
+                    <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
+                    <p class="text-sm text-gray-400 mt-1" id="sourceLabel">Powered by 2Embed</p>
+                </div>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -172,32 +164,38 @@
             
             <!-- Source Selection Tabs -->
             <div class="bg-gray-800 px-6 py-3 border-b border-gray-700">
-                <div class="flex gap-2 overflow-x-auto">
-                    <button onclick="switchSource('vidsrc')" class="source-tab active px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="vidsrc">
-                        VidSrc
-                    </button>
-                    <button onclick="switchSource('embedsu')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="embedsu">
-                        Embed.su
-                    </button>
-                    <button onclick="switchSource('2embed')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="2embed">
+                <div class="flex gap-2 justify-center">
+                    <button onclick="switchSource('2embed')" class="source-tab px-6 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-white transition" data-source="2embed">
                         2Embed
                     </button>
-                    <button onclick="switchSource('moviesapi')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="moviesapi">
-                        MoviesAPI
+                    <button onclick="switchSource('vidsrc')" class="source-tab px-6 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 text-white transition" data-source="vidsrc">
+                        VidSrc
                     </button>
                 </div>
+                <p class="text-xs text-gray-400 text-center mt-2">Switch sources if one doesn't work</p>
             </div>
             
             <div class="p-6">
-                <div class="aspect-video bg-black rounded-lg overflow-hidden mb-4">
+                <div id="playerContainer" class="aspect-video bg-black rounded-lg overflow-hidden mb-4 relative">
                     <iframe 
                         id="moviePlayer" 
                         src="" 
                         class="w-full h-full" 
                         allowfullscreen
+                        webkitallowfullscreen
+                        mozallowfullscreen
                         allow="autoplay; fullscreen; picture-in-picture"
                         referrerpolicy="origin"
                     ></iframe>
+                    <button 
+                        onclick="toggleFullscreen()" 
+                        class="absolute bottom-4 right-4 bg-black/70 hover:bg-black/90 text-white p-3 rounded-lg transition-all z-10"
+                        title="Toggle Fullscreen"
+                    >
+                        <svg id="fullscreenIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                        </svg>
+                    </button>
                 </div>
                 <div class="flex gap-3 flex-wrap">
                     <button onclick="openInNewTab()" class="flex-1 min-w-[200px] bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
@@ -208,7 +206,7 @@
                     </button>
                 </div>
                 <p class="text-xs text-gray-400 mt-3 text-center">
-                    💡 Try different sources if one doesn't work. Quality may vary by source.
+                    💡 Click the fullscreen button in the player or press F11 for the best viewing experience
                 </p>
             </div>
         </div>
@@ -238,7 +236,7 @@
         let movies = [];
         let filteredMovies = [];
         let currentMovie = null;
-        let currentSource = 'vidsrc';
+        let currentSource = '2embed';
 
         const movieListContainer = document.getElementById('movieList');
         const searchBar = document.getElementById('searchBar');
@@ -246,12 +244,10 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const errorMessage = document.getElementById('errorMessage');
 
-        // Streaming source URLs
+        // Streaming sources
         const streamingSources = {
-            vidsrc: (tmdbId) => `https://vidsrc.xyz/embed/movie/${tmdbId}`,
-            embedsu: (tmdbId) => `https://embed.su/embed/movie/${tmdbId}`,
             '2embed': (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
-            moviesapi: (tmdbId) => `https://moviesapi.club/movie/${tmdbId}`
+            'vidsrc': (tmdbId) => `https://vidsrc.xyz/embed/movie/${tmdbId}`
         };
 
         /**
@@ -358,24 +354,26 @@
                 event.stopPropagation();
             }
             
-            if (!movie.tmdbId && !movie.movieUrl) {
-                alert('No streaming source available for this movie. Please add a TMDB ID or direct URL.');
+            if (!movie.tmdbId) {
+                alert('No TMDB ID available for this movie. Please add one in the admin panel.');
                 return;
             }
             
             currentMovie = movie;
-            currentSource = 'vidsrc';
+            currentSource = '2embed'; // Default source
             
             document.getElementById('modalTitle').textContent = movie.title;
             
-            // Load the movie with default source
+            // Load movie with default source
             loadMovieSource(currentSource);
             
             // Reset active tab
             document.querySelectorAll('.source-tab').forEach(tab => {
-                tab.classList.remove('active');
+                tab.classList.remove('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600');
+                tab.classList.add('bg-gray-700', 'hover:bg-gray-600');
             });
-            document.querySelector('[data-source="vidsrc"]').classList.add('active');
+            document.querySelector('[data-source="2embed"]').classList.add('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600');
+            document.querySelector('[data-source="2embed"]').classList.remove('bg-gray-700', 'hover:bg-gray-600');
             
             document.getElementById('movieModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -386,13 +384,11 @@
          */
         function loadMovieSource(source) {
             const player = document.getElementById('moviePlayer');
+            const sourceLabel = document.getElementById('sourceLabel');
             
-            if (currentMovie.movieUrl) {
-                // Use direct URL if available
-                player.src = currentMovie.movieUrl;
-            } else if (currentMovie.tmdbId && streamingSources[source]) {
-                // Use streaming service with TMDB ID
+            if (currentMovie.tmdbId && streamingSources[source]) {
                 player.src = streamingSources[source](currentMovie.tmdbId);
+                sourceLabel.textContent = `Powered by ${source === '2embed' ? '2Embed' : 'VidSrc'}`;
             } else {
                 alert('Unable to load movie from this source.');
             }
@@ -407,15 +403,60 @@
             
             // Update active tab
             document.querySelectorAll('.source-tab').forEach(tab => {
-                tab.classList.remove('active');
+                tab.classList.remove('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600');
+                tab.classList.add('bg-gray-700', 'hover:bg-gray-600');
             });
-            event.target.classList.add('active');
+            const activeTab = document.querySelector(`[data-source="${source}"]`);
+            activeTab.classList.add('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600');
+            activeTab.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+        }
+
+        /**
+         * Toggle fullscreen mode
+         */
+        function toggleFullscreen() {
+            const container = document.getElementById('playerContainer');
+            
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
+                // Enter fullscreen
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.mozRequestFullScreen) {
+                    container.mozRequestFullScreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
         }
 
         /**
          * Closes the movie modal
          */
         function closeModal() {
+            // Exit fullscreen if active
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                }
+            }
+            
             document.getElementById('movieModal').classList.add('hidden');
             document.getElementById('moviePlayer').src = '';
             document.body.style.overflow = 'auto';
@@ -426,17 +467,9 @@
          * Opens the movie in a new tab
          */
         function openInNewTab() {
-            if (currentMovie) {
-                let url;
-                if (currentMovie.movieUrl) {
-                    url = currentMovie.movieUrl;
-                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
-                    url = streamingSources[currentSource](currentMovie.tmdbId);
-                }
-                
-                if (url) {
-                    window.open(url, '_blank');
-                }
+            if (currentMovie && currentMovie.tmdbId && streamingSources[currentSource]) {
+                const url = streamingSources[currentSource](currentMovie.tmdbId);
+                window.open(url, '_blank');
             }
         }
 
@@ -444,32 +477,24 @@
          * Copies the movie link to clipboard
          */
         function copyMovieLink() {
-            if (currentMovie) {
-                let url;
-                if (currentMovie.movieUrl) {
-                    url = currentMovie.movieUrl;
-                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
-                    url = streamingSources[currentSource](currentMovie.tmdbId);
-                }
-                
-                if (url) {
-                    navigator.clipboard.writeText(url).then(() => {
-                        const btn = event.target;
-                        const originalText = btn.textContent;
-                        btn.textContent = '✅ Copied!';
-                        btn.classList.add('bg-green-600');
-                        btn.classList.remove('bg-gray-700');
-                        
-                        setTimeout(() => {
-                            btn.textContent = originalText;
-                            btn.classList.remove('bg-green-600');
-                            btn.classList.add('bg-gray-700');
-                        }, 2000);
-                    }).catch(err => {
-                        alert('Failed to copy link');
-                        console.error('Copy error:', err);
-                    });
-                }
+            if (currentMovie && currentMovie.tmdbId && streamingSources[currentSource]) {
+                const url = streamingSources[currentSource](currentMovie.tmdbId);
+                navigator.clipboard.writeText(url).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅ Copied!';
+                    btn.classList.add('bg-green-600');
+                    btn.classList.remove('bg-gray-700');
+                    
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.classList.remove('bg-green-600');
+                        btn.classList.add('bg-gray-700');
+                    }, 2000);
+                }).catch(err => {
+                    alert('Failed to copy link');
+                    console.error('Copy error:', err);
+                });
             }
         }
 
@@ -493,7 +518,6 @@
             const year = document.getElementById('newYear').value.trim();
             const posterUrl = document.getElementById('newPoster').value.trim();
             const tmdbId = document.getElementById('newTmdbId').value.trim();
-            const movieUrl = document.getElementById('newMovieUrl').value.trim();
             const adminMessage = document.getElementById('adminMessage');
 
             if (!title) {
@@ -501,8 +525,8 @@
                 return;
             }
 
-            if (!tmdbId && !movieUrl) {
-                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Either TMDB ID or Movie URL is required!</p>';
+            if (!tmdbId) {
+                adminMessage.innerHTML = '<p class="text-red-400">⚠️ TMDB ID is required!</p>';
                 return;
             }
 
@@ -513,8 +537,7 @@
                 title: title,
                 year: year || null,
                 posterUrl: posterUrl || null,
-                tmdbId: tmdbId || null,
-                movieUrl: movieUrl || null,
+                tmdbId: tmdbId,
                 addedAt: Date.now()
             })
             .then(() => {
@@ -524,7 +547,6 @@
                 document.getElementById('newYear').value = '';
                 document.getElementById('newPoster').value = '';
                 document.getElementById('newTmdbId').value = '';
-                document.getElementById('newMovieUrl').value = '';
                 
                 setTimeout(() => {
                     adminMessage.innerHTML = '';
@@ -547,7 +569,30 @@
             if (e.key === 'Escape') {
                 closeModal();
             }
+            // F11 for fullscreen
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
         });
+
+        // Update fullscreen icon when fullscreen state changes
+        document.addEventListener('fullscreenchange', updateFullscreenIcon);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+        document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
+
+        function updateFullscreenIcon() {
+            const icon = document.getElementById('fullscreenIcon');
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+            
+            if (isFullscreen) {
+                // Exit fullscreen icon
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            } else {
+                // Enter fullscreen icon
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>';
+            }
+        }
 
         // Load movies when page loads
         document.addEventListener('DOMContentLoaded', () => {
