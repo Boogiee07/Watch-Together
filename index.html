@@ -163,11 +163,18 @@
         <div class="bg-gray-900 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-700">
             <div class="bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-700">
                 <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-white transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-white transition px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg" title="Fullscreen">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                        </svg>
+                    </button>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-white transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
             
             <!-- Source Selection Tabs -->
@@ -210,6 +217,58 @@
                 <p class="text-xs text-gray-400 mt-3 text-center">
                     💡 Try different sources if one doesn't work. Quality may vary by source.
                 </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Movie Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl max-w-2xl w-full border border-gray-700">
+            <div class="bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-700">
+                <h3 class="text-xl font-bold text-white">✏️ Edit Movie</h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-4">
+                    <input type="hidden" id="editMovieId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Movie Title *</label>
+                        <input type="text" id="editTitle" placeholder="Enter movie title" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Year</label>
+                            <input type="number" id="editYear" placeholder="2024" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID</label>
+                            <input type="text" id="editTmdbId" placeholder="550" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
+                        <input type="text" id="editPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Direct Movie URL</label>
+                        <input type="text" id="editMovieUrl" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="updateMovie()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        💾 Save Changes
+                    </button>
+                    <button onclick="closeEditModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150">
+                        Cancel
+                    </button>
+                </div>
+                <div id="editMessage" class="mt-4 text-sm"></div>
             </div>
         </div>
     </div>
@@ -311,12 +370,20 @@
                                     onerror="this.onerror=null; this.src='https://placehold.co/200x300/000000/FFFFFF?text=No+Poster'"
                                 >
                                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center">
-                                    <button 
-                                        onclick='watchMovie(${JSON.stringify(movie)}, event)'
-                                        class="opacity-0 group-hover:opacity-100 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold"
-                                    >
-                                        ▶️ Play
-                                    </button>
+                                    <div class="opacity-0 group-hover:opacity-100 flex gap-2">
+                                        <button 
+                                            onclick='watchMovie(${JSON.stringify(movie)}, event)'
+                                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold text-sm"
+                                        >
+                                            ▶️ Play
+                                        </button>
+                                        <button 
+                                            onclick='editMovie(${JSON.stringify(movie)}, event)'
+                                            class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold text-sm"
+                                        >
+                                            ✏️
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -329,6 +396,20 @@
                                 >
                                     🎬 Watch Now
                                 </button>
+                                <div class="flex gap-2 mt-2">
+                                    <button 
+                                        onclick='editMovie(${JSON.stringify(movie)}, event)'
+                                        class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
+                                    >
+                                        ✏️ Edit
+                                    </button>
+                                    <button 
+                                        onclick='deleteMovie(${JSON.stringify(movie)}, event)'
+                                        class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
+                                    >
+                                        🗑️ Delete
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -413,6 +494,31 @@
         }
 
         /**
+         * Toggle fullscreen mode
+         */
+        function toggleFullscreen() {
+            const modal = document.getElementById('movieModal');
+            
+            if (!document.fullscreenElement) {
+                if (modal.requestFullscreen) {
+                    modal.requestFullscreen();
+                } else if (modal.webkitRequestFullscreen) {
+                    modal.webkitRequestFullscreen();
+                } else if (modal.msRequestFullscreen) {
+                    modal.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        /**
          * Closes the movie modal
          */
         function closeModal() {
@@ -470,6 +576,100 @@
                         console.error('Copy error:', err);
                     });
                 }
+            }
+        }
+
+        /**
+         * Opens edit modal for a movie
+         */
+        function editMovie(movie, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            document.getElementById('editMovieId').value = movie.id;
+            document.getElementById('editTitle').value = movie.title || '';
+            document.getElementById('editYear').value = movie.year || '';
+            document.getElementById('editTmdbId').value = movie.tmdbId || '';
+            document.getElementById('editPoster').value = movie.posterUrl || '';
+            document.getElementById('editMovieUrl').value = movie.movieUrl || '';
+            
+            document.getElementById('editModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        /**
+         * Closes the edit modal
+         */
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editMessage').innerHTML = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        /**
+         * Updates a movie in Firebase
+         */
+        function updateMovie() {
+            const id = document.getElementById('editMovieId').value;
+            const title = document.getElementById('editTitle').value.trim();
+            const year = document.getElementById('editYear').value.trim();
+            const posterUrl = document.getElementById('editPoster').value.trim();
+            const tmdbId = document.getElementById('editTmdbId').value.trim();
+            const movieUrl = document.getElementById('editMovieUrl').value.trim();
+            const editMessage = document.getElementById('editMessage');
+
+            if (!title) {
+                editMessage.innerHTML = '<p class="text-red-400">⚠️ Title is required!</p>';
+                return;
+            }
+
+            if (!tmdbId && !movieUrl) {
+                editMessage.innerHTML = '<p class="text-red-400">⚠️ Either TMDB ID or Movie URL is required!</p>';
+                return;
+            }
+
+            editMessage.innerHTML = '<p class="text-blue-400">⏳ Updating movie...</p>';
+
+            const movieRef = database.ref('movies/' + id);
+            movieRef.update({
+                title: title,
+                year: year || null,
+                posterUrl: posterUrl || null,
+                tmdbId: tmdbId || null,
+                movieUrl: movieUrl || null,
+                updatedAt: Date.now()
+            })
+            .then(() => {
+                editMessage.innerHTML = '<p class="text-green-400">✅ Movie updated successfully!</p>';
+                setTimeout(() => {
+                    closeEditModal();
+                }, 1500);
+            })
+            .catch((error) => {
+                editMessage.innerHTML = `<p class="text-red-400">❌ Error: ${error.message}</p>`;
+            });
+        }
+
+        /**
+         * Deletes a movie from Firebase
+         */
+        function deleteMovie(movie, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            if (confirm(`Are you sure you want to delete "${movie.title}"? This action cannot be undone.`)) {
+                const movieRef = database.ref('movies/' + movie.id);
+                movieRef.remove()
+                .then(() => {
+                    console.log('Movie deleted successfully');
+                })
+                .catch((error) => {
+                    alert(`Error deleting movie: ${error.message}`);
+                });
             }
         }
 
@@ -542,10 +742,17 @@
             }
         });
 
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
         // Close modal with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeModal();
+                closeEditModal();
             }
         });
 
