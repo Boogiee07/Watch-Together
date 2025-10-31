@@ -262,12 +262,20 @@
         const adminMessage = document.getElementById('adminMessage');
         const userIdDisplay = document.getElementById('userIdDisplay');
 
-        // Streaming sources (FIXED: Added commas)
+        // Streaming sources URLs (FIXED: Added commas)
         const streamingSources = {
             '2embed': (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
             'vidsrc': (tmdbId) => `https://vidsrc.xyz/embed/movie/${tmdbId}`,
             'flixhq': (tmdbId) => `https://flixhq.to/watch/${tmdbId}`,
             'upcloud': (tmdbId) => `https://upcloud.link/movie/${tmdbId}`,
+        };
+
+        // Streaming source display names for the UI
+        const sourceDisplayNames = {
+            '2embed': '2Embed',
+            'vidsrc': 'VidSrc',
+            'flixhq': 'FlixHQ',
+            'upcloud': 'UpCloud'
         };
         
         /**
@@ -425,18 +433,23 @@
         }
 
         /**
-         * Loads movie from specific source (FIXED: Removed alert() on failure)
+         * Loads movie from specific source and updates the label. (FIXED: Label and error handling)
          */
         function loadMovieSource(source) {
             const player = document.getElementById('moviePlayer');
             const sourceLabel = document.getElementById('sourceLabel');
             
+            // Get the friendly display name from the mapping, falling back to the key
+            const displayName = sourceDisplayNames[source] || source;
+
             if (currentMovie.tmdbId && streamingSources[source]) {
                 player.src = streamingSources[source](currentMovie.tmdbId);
-                // Updated label to show the actual source name
-                sourceLabel.textContent = `Powered by ${source}`;
+                // Use the correct, capitalized display name
+                sourceLabel.textContent = `Powered by ${displayName}`; 
             } else {
-                console.error(`Attempted to load movie from unknown source or missing TMDB ID for source: ${source}`);
+                // IMPORTANT: Removed alert() and replaced with non-intrusive console error and label update
+                console.error(`Attempted to load movie from source: ${source}. Missing TMDB ID or unknown source key.`);
+                sourceLabel.textContent = `Error loading source: ${displayName}`;
             }
         }
 
