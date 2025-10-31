@@ -84,7 +84,8 @@
             showMovieLibrary: false,
             movieLibrary: [],
             showAddMovie: false,
-            isSyncing: false
+            isSyncing: false,
+            hostOnlyControl: false
         };
 
         // Utility Functions
@@ -227,6 +228,17 @@
             render();
         }
 
+        // Toggle host-only control
+        function toggleHostOnlyControl() {
+            state.hostOnlyControl = !state.hostOnlyControl;
+            
+            updateRoom({
+                hostOnlyControl: state.hostOnlyControl
+            });
+            
+            render();
+        }
+
         // Toggle drive instructions
         function toggleDriveInstructions() {
             state.showDriveInstructions = !state.showDriveInstructions;
@@ -275,6 +287,7 @@ Option 2: Gofile (Simple & Free)
                     state.videoFileName = data.videoFileName || '';
                     state.duration = data.duration || 0;
                     state.videoType = data.videoType || 'video';
+                    state.hostOnlyControl = data.hostOnlyControl || false;
                     
                     setTimeout(() => {
                         if (state.videoUrl) {
@@ -305,6 +318,7 @@ Option 2: Gofile (Simple & Free)
                         videoUrl: '',
                         videoFileName: '',
                         videoType: 'video',
+                        hostOnlyControl: false,
                         host: state.userId,
                         createdAt: Date.now()
                     });
@@ -388,6 +402,11 @@ Option 2: Gofile (Simple & Free)
                         state.currentTime = data.currentTime;
                     }
                     
+                    // Update host-only control setting
+                    if (data.hostOnlyControl !== undefined && data.hostOnlyControl !== state.hostOnlyControl) {
+                        state.hostOnlyControl = data.hostOnlyControl;
+                    }
+                    
                     render();
                 }
             });
@@ -440,6 +459,12 @@ Option 2: Gofile (Simple & Free)
 
         // Toggle play/pause
         function togglePlay() {
+            // Check if non-host is trying to control when host-only is enabled
+            if (state.hostOnlyControl && !state.isHost) {
+                alert('⚠️ Host has enabled Host-Only Control. Only the host can play/pause the video.');
+                return;
+            }
+            
             if (state.videoType === 'iframe') {
                 alert('Google Drive videos play automatically. Use the controls in the video player.');
                 return;
@@ -471,6 +496,12 @@ Option 2: Gofile (Simple & Free)
 
         // Seek video
         function seekVideo(percentage) {
+            // Check if non-host is trying to seek when host-only is enabled
+            if (state.hostOnlyControl && !state.isHost) {
+                alert('⚠️ Host has enabled Host-Only Control. Only the host can seek the video.');
+                return;
+            }
+            
             if (state.videoType === 'iframe') return;
             
             const video = document.getElementById('videoPlayer');
@@ -751,6 +782,15 @@ Option 2: Gofile (Simple & Free)
                                         </div>
                                         
                                         ${state.isHost ? `
+                                            <button onclick="toggleHostOnlyControl()" class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold ${
+                                                state.hostOnlyControl
+                                                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                            }" title="${state.hostOnlyControl ? 'Disable host-only control' : 'Enable host-only control'}">
+                                                <span class="text-lg">${state.hostOnlyControl ? '🔒' : '🔓'}</span>
+                                                <span class="hidden sm:inline">${state.hostOnlyControl ? 'Host Only' : 'All Control'}</span>
+                                            </button>
+                                            
                                             <button onclick="toggleScreenShare()" class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold ${
                                                 state.isScreenSharing
                                                     ? 'bg-red-500 hover:bg-red-600 text-white'
@@ -991,11 +1031,21 @@ Option 2: Gofile (Simple & Free)
                                     ` : ''}
                                 </div>
                                 
-                                <div class="mt-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
-                                    <p class="text-green-200 text-sm text-center">
-                                        ✨ Everyone can control playback! Any user can play, pause, or seek the video.
-                                    </p>
-                                </div>
+                                ${state.hostOnlyControl ? `
+                                    <div class="mt-4 p-3 ${state.isHost ? 'bg-orange-500/20 border-orange-500/30' : 'bg-yellow-500/20 border-yellow-500/30'} border rounded-lg">
+                                        <p class="${state.isHost ? 'text-orange-200' : 'text-yellow-200'} text-sm text-center">
+                                            ${state.isHost 
+                                                ? '🔒 Host-Only Control is ENABLED. Only you can control playback.' 
+                                                : '🔒 Host-Only Control is enabled. Only the host can play, pause, or seek the video.'}
+                                        </p>
+                                    </div>
+                                ` : `
+                                    <div class="mt-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+                                        <p class="text-green-200 text-sm text-center">
+                                            ✨ Everyone can control playback! Any user can play, pause, or seek the video.
+                                        </p>
+                                    </div>
+                                `}
                             </div>
                         </div>
                     </div>
