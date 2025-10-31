@@ -31,6 +31,13 @@
         .loading {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+        .source-tab {
+            transition: all 0.2s;
+        }
+        .source-tab.active {
+            background: linear-gradient(to right, #6366f1, #8b5cf6);
+            color: white;
+        }
     </style>
 </head>
 <body class="text-white">
@@ -68,7 +75,7 @@
     <!-- Main Content Area -->
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
-            <h1 class="text-3xl font-extrabold text-indigo-300">Your Google Drive Movie Library</h1>
+            <h1 class="text-3xl font-extrabold text-indigo-300">Your Movie Library</h1>
             <button onclick="toggleAdminPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150">
                 ⚙️ Admin Panel
             </button>
@@ -114,14 +121,18 @@
                             <input type="number" id="newYear" placeholder="2024" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
-                            <input type="text" id="newPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID</label>
+                            <input type="text" id="newTmdbId" placeholder="550 (for Fight Club)" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Google Drive File ID *</label>
-                        <input type="text" id="newDriveId" placeholder="1a2b3c4d5e6f7g8h9i" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <p class="text-xs text-gray-400 mt-1">Get the ID from your Google Drive share link: drive.google.com/file/d/<strong>FILE_ID</strong>/view</p>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
+                        <input type="text" id="newPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Direct Movie URL (Optional)</label>
+                        <input type="text" id="newMovieUrl" placeholder="https://your-streaming-url.com/movie.mp4" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <p class="text-xs text-gray-400 mt-1">💡 Leave empty to use TMDB ID with multiple streaming sources</p>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-6">
@@ -133,6 +144,16 @@
                     </button>
                 </div>
                 <div id="adminMessage" class="mt-4 text-sm"></div>
+                
+                <div class="mt-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                    <p class="text-sm text-blue-200 font-semibold mb-2">📝 How to find TMDB ID:</p>
+                    <ol class="text-xs text-blue-100 space-y-1 list-decimal list-inside">
+                        <li>Go to <a href="https://www.themoviedb.org/" target="_blank" class="underline">themoviedb.org</a></li>
+                        <li>Search for your movie</li>
+                        <li>Look at the URL: themoviedb.org/movie/<strong>TMDB_ID</strong>-movie-name</li>
+                        <li>Copy the ID number and paste it above</li>
+                    </ol>
+                </div>
             </div>
         </div>
     </main>
@@ -148,24 +169,47 @@
                     </svg>
                 </button>
             </div>
+            
+            <!-- Source Selection Tabs -->
+            <div class="bg-gray-800 px-6 py-3 border-b border-gray-700">
+                <div class="flex gap-2 overflow-x-auto">
+                    <button onclick="switchSource('vidsrc')" class="source-tab active px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="vidsrc">
+                        VidSrc
+                    </button>
+                    <button onclick="switchSource('embedsu')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="embedsu">
+                        Embed.su
+                    </button>
+                    <button onclick="switchSource('2embed')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="2embed">
+                        2Embed
+                    </button>
+                    <button onclick="switchSource('moviesapi')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="moviesapi">
+                        MoviesAPI
+                    </button>
+                </div>
+            </div>
+            
             <div class="p-6">
                 <div class="aspect-video bg-black rounded-lg overflow-hidden mb-4">
                     <iframe 
                         id="moviePlayer" 
                         src="" 
                         class="w-full h-full" 
-                        allow="autoplay; encrypted-media" 
                         allowfullscreen
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        referrerpolicy="origin"
                     ></iframe>
                 </div>
-                <div class="flex gap-3">
-                    <button onclick="openInNewTab()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                <div class="flex gap-3 flex-wrap">
+                    <button onclick="openInNewTab()" class="flex-1 min-w-[200px] bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
                         🚀 Open in New Tab
                     </button>
-                    <button onclick="copyDriveLink()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
-                        📋 Copy Drive Link
+                    <button onclick="copyMovieLink()" class="flex-1 min-w-[200px] bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        📋 Copy Link
                     </button>
                 </div>
+                <p class="text-xs text-gray-400 mt-3 text-center">
+                    💡 Try different sources if one doesn't work. Quality may vary by source.
+                </p>
             </div>
         </div>
     </div>
@@ -193,13 +237,22 @@
 
         let movies = [];
         let filteredMovies = [];
-        let currentMovieDriveId = '';
+        let currentMovie = null;
+        let currentSource = 'vidsrc';
 
         const movieListContainer = document.getElementById('movieList');
         const searchBar = document.getElementById('searchBar');
         const noResultsMessage = document.getElementById('noResults');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const errorMessage = document.getElementById('errorMessage');
+
+        // Streaming source URLs
+        const streamingSources = {
+            vidsrc: (tmdbId) => `https://vidsrc.xyz/embed/movie/${tmdbId}`,
+            embedsu: (tmdbId) => `https://embed.su/embed/movie/${tmdbId}`,
+            '2embed': (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
+            moviesapi: (tmdbId) => `https://moviesapi.club/movie/${tmdbId}`
+        };
 
         /**
          * Loads movies from Firebase Realtime Database
@@ -259,7 +312,7 @@
                                 >
                                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center">
                                     <button 
-                                        onclick="watchMovie('${movie.driveId}', '${movie.title.replace(/'/g, "\\'")}', event)"
+                                        onclick='watchMovie(${JSON.stringify(movie)}, event)'
                                         class="opacity-0 group-hover:opacity-100 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold"
                                     >
                                         ▶️ Play
@@ -271,7 +324,7 @@
                                 <h3 class="text-lg font-semibold truncate text-indigo-300" title="${movie.title}">${movie.title}</h3>
                                 <p class="text-sm text-gray-400 mt-1">Year: ${movie.year || 'N/A'}</p>
                                 <button 
-                                    onclick="watchMovie('${movie.driveId}', '${movie.title.replace(/'/g, "\\'")}', event)"
+                                    onclick='watchMovie(${JSON.stringify(movie)}, event)'
                                     class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
                                 >
                                     🎬 Watch Now
@@ -299,26 +352,64 @@
         /**
          * Opens the movie in a modal player
          */
-        function watchMovie(driveId, title, event) {
+        function watchMovie(movie, event) {
             if (event) {
                 event.preventDefault();
                 event.stopPropagation();
             }
             
-            if (!driveId) {
-                alert('No Google Drive link available for this movie.');
+            if (!movie.tmdbId && !movie.movieUrl) {
+                alert('No streaming source available for this movie. Please add a TMDB ID or direct URL.');
                 return;
             }
             
-            currentMovieDriveId = driveId;
-            const driveUrl = `https://drive.google.com/file/d/${driveId}/preview`;
+            currentMovie = movie;
+            currentSource = 'vidsrc';
             
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('moviePlayer').src = driveUrl;
+            document.getElementById('modalTitle').textContent = movie.title;
+            
+            // Load the movie with default source
+            loadMovieSource(currentSource);
+            
+            // Reset active tab
+            document.querySelectorAll('.source-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector('[data-source="vidsrc"]').classList.add('active');
+            
             document.getElementById('movieModal').classList.remove('hidden');
-            
-            // Prevent body scroll when modal is open
             document.body.style.overflow = 'hidden';
+        }
+
+        /**
+         * Loads movie from specific source
+         */
+        function loadMovieSource(source) {
+            const player = document.getElementById('moviePlayer');
+            
+            if (currentMovie.movieUrl) {
+                // Use direct URL if available
+                player.src = currentMovie.movieUrl;
+            } else if (currentMovie.tmdbId && streamingSources[source]) {
+                // Use streaming service with TMDB ID
+                player.src = streamingSources[source](currentMovie.tmdbId);
+            } else {
+                alert('Unable to load movie from this source.');
+            }
+        }
+
+        /**
+         * Switches between streaming sources
+         */
+        function switchSource(source) {
+            currentSource = source;
+            loadMovieSource(source);
+            
+            // Update active tab
+            document.querySelectorAll('.source-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
         }
 
         /**
@@ -328,40 +419,57 @@
             document.getElementById('movieModal').classList.add('hidden');
             document.getElementById('moviePlayer').src = '';
             document.body.style.overflow = 'auto';
+            currentMovie = null;
         }
 
         /**
          * Opens the movie in a new tab
          */
         function openInNewTab() {
-            if (currentMovieDriveId) {
-                const driveUrl = `https://drive.google.com/file/d/${currentMovieDriveId}/preview`;
-                window.open(driveUrl, '_blank');
+            if (currentMovie) {
+                let url;
+                if (currentMovie.movieUrl) {
+                    url = currentMovie.movieUrl;
+                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
+                    url = streamingSources[currentSource](currentMovie.tmdbId);
+                }
+                
+                if (url) {
+                    window.open(url, '_blank');
+                }
             }
         }
 
         /**
-         * Copies the Google Drive link to clipboard
+         * Copies the movie link to clipboard
          */
-        function copyDriveLink() {
-            if (currentMovieDriveId) {
-                const driveUrl = `https://drive.google.com/file/d/${currentMovieDriveId}/view`;
-                navigator.clipboard.writeText(driveUrl).then(() => {
-                    const btn = event.target;
-                    const originalText = btn.textContent;
-                    btn.textContent = '✅ Copied!';
-                    btn.classList.add('bg-green-600');
-                    btn.classList.remove('bg-gray-700');
-                    
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.classList.remove('bg-green-600');
-                        btn.classList.add('bg-gray-700');
-                    }, 2000);
-                }).catch(err => {
-                    alert('Failed to copy link');
-                    console.error('Copy error:', err);
-                });
+        function copyMovieLink() {
+            if (currentMovie) {
+                let url;
+                if (currentMovie.movieUrl) {
+                    url = currentMovie.movieUrl;
+                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
+                    url = streamingSources[currentSource](currentMovie.tmdbId);
+                }
+                
+                if (url) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        const btn = event.target;
+                        const originalText = btn.textContent;
+                        btn.textContent = '✅ Copied!';
+                        btn.classList.add('bg-green-600');
+                        btn.classList.remove('bg-gray-700');
+                        
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.classList.remove('bg-green-600');
+                            btn.classList.add('bg-gray-700');
+                        }, 2000);
+                    }).catch(err => {
+                        alert('Failed to copy link');
+                        console.error('Copy error:', err);
+                    });
+                }
             }
         }
 
@@ -373,7 +481,6 @@
             panel.classList.toggle('hidden');
             
             if (!panel.classList.contains('hidden')) {
-                // Scroll to admin panel
                 panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
@@ -385,15 +492,20 @@
             const title = document.getElementById('newTitle').value.trim();
             const year = document.getElementById('newYear').value.trim();
             const posterUrl = document.getElementById('newPoster').value.trim();
-            const driveId = document.getElementById('newDriveId').value.trim();
+            const tmdbId = document.getElementById('newTmdbId').value.trim();
+            const movieUrl = document.getElementById('newMovieUrl').value.trim();
             const adminMessage = document.getElementById('adminMessage');
 
-            if (!title || !driveId) {
-                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Title and Drive ID are required!</p>';
+            if (!title) {
+                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Title is required!</p>';
                 return;
             }
 
-            // Show loading state
+            if (!tmdbId && !movieUrl) {
+                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Either TMDB ID or Movie URL is required!</p>';
+                return;
+            }
+
             adminMessage.innerHTML = '<p class="text-blue-400">⏳ Adding movie...</p>';
 
             const newMovieRef = database.ref('movies').push();
@@ -401,7 +513,8 @@
                 title: title,
                 year: year || null,
                 posterUrl: posterUrl || null,
-                driveId: driveId,
+                tmdbId: tmdbId || null,
+                movieUrl: movieUrl || null,
                 addedAt: Date.now()
             })
             .then(() => {
@@ -410,9 +523,9 @@
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newYear').value = '';
                 document.getElementById('newPoster').value = '';
-                document.getElementById('newDriveId').value = '';
+                document.getElementById('newTmdbId').value = '';
+                document.getElementById('newMovieUrl').value = '';
                 
-                // Hide success message after 3 seconds
                 setTimeout(() => {
                     adminMessage.innerHTML = '';
                 }, 3000);
