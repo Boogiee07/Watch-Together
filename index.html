@@ -472,16 +472,18 @@ Option 2: Gofile (Simple & Free)
             state.isPlaying = true;
             state.lastUserAction = Date.now();
             
-            video.play().catch(e => {
+            video.play().then(() => {
+                updateRoom({
+                    isPlaying: true,
+                    currentTime: video.currentTime || 0,
+                    lastActionBy: state.userId,
+                    lastActionTime: Date.now()
+                });
+                render();
+            }).catch(e => {
                 console.error('Play error:', e);
                 state.isPlaying = false;
-            });
-            
-            updateRoom({
-                isPlaying: true,
-                currentTime: video.currentTime || 0,
-                lastActionBy: state.userId,
-                lastActionTime: Date.now()
+                render();
             });
         }
 
@@ -510,6 +512,8 @@ Option 2: Gofile (Simple & Free)
                 lastActionBy: state.userId,
                 lastActionTime: Date.now()
             });
+            
+            render();
         }
 
         // Stop video (host only)
@@ -531,6 +535,7 @@ Option 2: Gofile (Simple & Free)
             
             video.pause();
             video.currentTime = 0;
+            state.currentTime = 0;
             
             updateRoom({
                 isPlaying: false,
@@ -538,6 +543,8 @@ Option 2: Gofile (Simple & Free)
                 lastActionBy: state.userId,
                 lastActionTime: Date.now()
             });
+            
+            render();
         }
 
         // Seek video
@@ -833,7 +840,7 @@ Option 2: Gofile (Simple & Free)
                                                     : 'bg-green-500 hover:bg-green-600 text-white'
                                             }">
                                                 <span class="text-lg">${state.isScreenSharing ? '🛑' : '📺'}</span>
-                                                <span class="hidden sm:inline">${state.isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
+                                                <span>${state.isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
                                             </button>
                                         ` : ''}
                                     </div>
