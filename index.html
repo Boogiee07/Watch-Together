@@ -101,15 +101,6 @@ class="text-sm text-gray-400 hidden">User Mode</span>
             <div class="p-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Admin Email</label>
-                        <input 
-                            type="email" 
-                            id="adminEmail" 
-                            placeholder="Enter admin email"
-                            class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Admin Password</label>
      
                         <input 
@@ -144,7 +135,7 @@ class="text-sm text-gray-400 hidden">User Mode</span>
         </div>
         
      
-    <div id="loadingIndicator" class="text-center py-20">
+        <div id="loadingIndicator" class="text-center py-20">
             <div class="inline-block loading">
                 <svg class="animate-spin h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -161,12 +152,12 @@ id="movieList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-col
 
         <div id="noResults" class="hidden text-center py-20">
             <p class="text-xl text-gray-400">No movies found matching your search.
-Try a different title!</p>
+ Try a different title!</p>
         </div>
 
         <div id="errorMessage" class="hidden text-center py-20">
             <p class="text-xl text-red-400">Failed to load movies.
-Please check your connection.</p>
+ Please check your connection.</p>
         </div>
 
         <div id="adminPanel" class="hidden mt-12 border-t border-gray-700 pt-8">
@@ -174,11 +165,11 @@ Please check your connection.</p>
                 <h2 class="text-2xl font-bold text-indigo-300 mb-4">Add New Movie</h2>
                 <div class="space-y-4">
        
-                     <div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Movie Title *</label>
                         <input type="text" id="newTitle" placeholder="Enter movie title" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 
-         </div>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Year</label>
@@ -192,11 +183,11 @@ Please check your connection.</p>
                         </div>
                     </div>
   
-                   <div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
                         <input type="text" id="newPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
               
-               </div>
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Direct Movie URL (Optional)</label>
                         <input type="text" id="newMovieUrl" placeholder="https://your-streaming-url.com/movie.mp4" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -291,7 +282,7 @@ fullscreen; picture-in-picture"
                 </div>
                 <div class="flex gap-3 flex-wrap">
                     
-<button onclick="openInNewTab()" class="flex-1 min-w-[200px] bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                    <button onclick="openInNewTab()" class="flex-1 min-w-[200px] bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
                         🚀 Open in New Tab
                     </button>
                     <button onclick="copyMovieLink()" class="flex-1 min-w-[200px] bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
@@ -301,7 +292,7 @@ fullscreen; picture-in-picture"
                 </div>
                 <p class="text-xs text-gray-400 mt-3 text-center">
                     💡 Try different sources if one 
- doesn't work. Quality may vary by source.
+doesn't work. Quality may vary by source.
                 </p>
             </div>
         </div>
@@ -371,7 +362,6 @@ border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 foc
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <script>
         // Firebase Configuration
@@ -389,11 +379,8 @@ border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 foc
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-
-        // Admin details for login/rules check (MUST BE UPDATED)
-        const ADMIN_EMAIL = "your.admin.email@example.com"; // 🚨 REMINDER: Create this user in Firebase Auth. The email for login is now taken from the modal input.
-        const ADMIN_UID = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // 🚨 Replace with your admin user's UID from Firebase Auth console
-        
+        // Admin password (change this for production!)
+        const ADMIN_PASSWORD = "Admin123456";
         let movies = [];
         let filteredMovies = [];
         let currentMovie = null;
@@ -411,104 +398,60 @@ border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 foc
             '2embed': (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
             moviesapi: (tmdbId) => `https://moviesapi.club/movie/${tmdbId}`
         };
-        
-        /**
-         * Checks Firebase Auth status on load
-         */
+        // Check if admin is logged in (from localStorage)
         function checkAdminStatus() {
-            // Check auth state from Firebase
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user && user.uid === ADMIN_UID) {
-                    isAdmin = true;
-                    // Persist state in localStorage to manage UI
-                    localStorage.setItem('isAdmin', 'true');
-                } else {
-                    isAdmin = false;
-                    localStorage.removeItem('isAdmin');
-                }
+            const adminLoggedIn = localStorage.getItem('isAdmin') === 'true';
+            if (adminLoggedIn) {
+                isAdmin = true;
                 updateAdminUI();
-                // Rerender movies to show/hide admin buttons after auth check
-                renderMovies(filteredMovies); 
-            });
+            }
         }
 
         // Show admin login modal
         function showAdminLogin() {
             document.getElementById('loginModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            // Focus the new email field
-            document.getElementById('adminEmail').focus();
+            document.getElementById('adminPassword').focus();
         }
 
         // Close login modal
         function closeLoginModal() {
             document.getElementById('loginModal').classList.add('hidden');
-            // Clear both email and password fields
-            document.getElementById('adminEmail').value = ''; 
             document.getElementById('adminPassword').value = '';
             document.getElementById('loginMessage').innerHTML = '';
             document.body.style.overflow = 'auto';
         }
 
-        /**
-         * Admin login using Firebase Email/Password Auth
-         */
+        // Admin login
         function adminLogin() {
-            // Read both email and password from the input fields
-            const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
             const loginMessage = document.getElementById('loginMessage');
 
-            if (!email || !password) {
-                loginMessage.innerHTML = '<p class="text-red-400">❌ Both email and password are required!</p>';
-                return;
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                localStorage.setItem('isAdmin', 'true');
+                loginMessage.innerHTML = '<p class="text-green-400">✅ Login successful!</p>';
+                setTimeout(() => {
+                    closeLoginModal();
+                    updateAdminUI();
+                    renderMovies(filteredMovies);
+                }, 1000);
+            } else {
+                loginMessage.innerHTML = '<p class="text-red-400">❌ Incorrect password!</p>';
+                document.getElementById('adminPassword').value = '';
             }
-
-            loginMessage.innerHTML = '<p class="text-blue-400">⏳ Logging in...</p>';
-
-            // Use the user-entered email and password for sign-in
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // Check if the logged-in user's UID matches the hardcoded Admin UID
-                    if (userCredential.user.uid === ADMIN_UID) {
-                        // isAdmin is set in onAuthStateChanged listener, but we update UI directly here for instant feedback
-                        isAdmin = true; 
-                        localStorage.setItem('isAdmin', 'true');
-                        loginMessage.innerHTML = '<p class="text-green-400">✅ Login successful!</p>';
-                        
-                        setTimeout(() => {
-                            closeLoginModal();
-                            updateAdminUI();
-                            renderMovies(filteredMovies);
-                        }, 1000);
-                    } else {
-                         // User authenticated but not the designated Admin UID
-                         firebase.auth().signOut();
-                         loginMessage.innerHTML = '<p class="text-red-400">❌ User is not authorized as admin!</p>';
-                    }
-                })
-                .catch((error) => {
-                    loginMessage.innerHTML = `<p class="text-red-400">❌ Login failed: ${error.message}</p>`;
-                    document.getElementById('adminPassword').value = '';
-                });
         }
 
         // Admin logout
         function adminLogout() {
             if (confirm('Are you sure you want to logout from admin mode?')) {
-                firebase.auth().signOut()
-                    .then(() => {
-                        isAdmin = false;
-                        localStorage.removeItem('isAdmin');
-                        updateAdminUI();
-                        renderMovies(filteredMovies);
-                        
-                        // Hide admin panel if open
-                        document.getElementById('adminPanel').classList.add('hidden');
-                    })
-                    .catch((error) => {
-                         alert(`Logout failed: ${error.message}`);
-                    });
+                isAdmin = false;
+                localStorage.removeItem('isAdmin');
+                updateAdminUI();
+                renderMovies(filteredMovies);
+                
+                // Hide admin panel if open
+                document.getElementById('adminPanel').classList.add('hidden');
             }
         }
 
@@ -518,7 +461,6 @@ border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 foc
             const adminLogoutBtn = document.getElementById('adminLogoutBtn');
             const adminPanelBtn = document.getElementById('adminPanelBtn');
             const adminStatus = document.getElementById('adminStatus');
-            
             if (isAdmin) {
                 adminLoginBtn.classList.add('hidden');
                 adminLogoutBtn.classList.remove('hidden');
@@ -613,7 +555,7 @@ border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 foc
                             </button>
                         </div>
                     ` : 
-'';
+                    '';
 
                     const movieCardHtml = `
                         <div class="movie-card bg-gray-800 rounded-xl overflow-hidden shadow-xl border border-gray-700">
@@ -732,25 +674,22 @@ ${movie.year || 'N/A'}</p>
             document.querySelectorAll('.source-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            // Use event.currentTarget for reliability
-            const targetButton = event.currentTarget || document.querySelector(`[data-source="${source}"]`);
-            if(targetButton) {
-                targetButton.classList.add('active');
-            }
+            event.target.classList.add('active');
         }
 
         /**
          * Toggle fullscreen mode
+         * FIXED: Targets the moviePlayer iframe instead of the modal container.
          */
         function toggleFullscreen() {
-            const modal = document.getElementById('movieModal');
+            const player = document.getElementById('moviePlayer'); // Target the iframe element
             if (!document.fullscreenElement) {
-                if (modal.requestFullscreen) {
-                    modal.requestFullscreen();
-                } else if (modal.webkitRequestFullscreen) {
-                    modal.webkitRequestFullscreen();
-                } else if (modal.msRequestFullscreen) {
-                    modal.msRequestFullscreen();
+                if (player.requestFullscreen) {
+                    player.requestFullscreen();
+                } else if (player.webkitRequestFullscreen) {
+                    player.webkitRequestFullscreen();
+                } else if (player.msRequestFullscreen) {
+                    player.msRequestFullscreen();
                 }
             } else {
                 if (document.exitFullscreen) {
@@ -812,6 +751,7 @@ ${movie.year || 'N/A'}</p>
                         btn.classList.add('bg-green-600');
                         btn.classList.remove('bg-gray-700');
                
+          
                         setTimeout(() => {
                             btn.textContent = originalText;
                             btn.classList.remove('bg-green-600');
@@ -1035,9 +975,8 @@ ${movie.year || 'N/A'}</p>
         });
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
+            checkAdminStatus();
             loadMoviesFromFirebase();
-            // checkAdminStatus relies on onAuthStateChanged, which starts listening immediately
-            checkAdminStatus(); 
         });
     </script>
 </body>
