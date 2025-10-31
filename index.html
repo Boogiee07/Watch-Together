@@ -85,7 +85,7 @@
             movieLibrary: [],
             showAddMovie: false,
             isSyncing: false,
-            hostOnlyControl: false
+            hostOnlyControl: true
         };
 
         // Utility Functions
@@ -228,17 +228,6 @@
             render();
         }
 
-        // Toggle host-only control
-        function toggleHostOnlyControl() {
-            state.hostOnlyControl = !state.hostOnlyControl;
-            
-            updateRoom({
-                hostOnlyControl: state.hostOnlyControl
-            });
-            
-            render();
-        }
-
         // Toggle drive instructions
         function toggleDriveInstructions() {
             state.showDriveInstructions = !state.showDriveInstructions;
@@ -287,7 +276,7 @@ Option 2: Gofile (Simple & Free)
                     state.videoFileName = data.videoFileName || '';
                     state.duration = data.duration || 0;
                     state.videoType = data.videoType || 'video';
-                    state.hostOnlyControl = data.hostOnlyControl || false;
+                    state.hostOnlyControl = true;
                     
                     setTimeout(() => {
                         if (state.videoUrl) {
@@ -318,7 +307,7 @@ Option 2: Gofile (Simple & Free)
                         videoUrl: '',
                         videoFileName: '',
                         videoType: 'video',
-                        hostOnlyControl: false,
+                        hostOnlyControl: true,
                         host: state.userId,
                         createdAt: Date.now()
                     });
@@ -402,11 +391,6 @@ Option 2: Gofile (Simple & Free)
                         state.currentTime = data.currentTime;
                     }
                     
-                    // Update host-only control setting
-                    if (data.hostOnlyControl !== undefined && data.hostOnlyControl !== state.hostOnlyControl) {
-                        state.hostOnlyControl = data.hostOnlyControl;
-                    }
-                    
                     render();
                 }
             });
@@ -426,7 +410,7 @@ Option 2: Gofile (Simple & Free)
 
             // Periodic time sync while playing
             setInterval(() => {
-                if (state.isPlaying && !state.isScreenSharing && state.videoType === 'video') {
+                if (state.isPlaying && !state.isScreenSharing && state.videoType === 'video' && state.isHost) {
                     const video = document.getElementById('videoPlayer');
                     if (video && !isNaN(video.currentTime)) {
                         const now = Date.now();
@@ -457,11 +441,10 @@ Option 2: Gofile (Simple & Free)
             }
         }
 
-        // Toggle play/pause
-        function togglePlay() {
-            // Check if non-host is trying to control when host-only is enabled
-            if (state.hostOnlyControl && !state.isHost) {
-                alert('⚠️ Host has enabled Host-Only Control. Only the host can play/pause the video.');
+        // Play video (host only)
+        function playVideo() {
+            if (!state.isHost) {
+                alert('⚠️ Only the host can control playback.');
                 return;
             }
             
@@ -473,22 +456,74 @@ Option 2: Gofile (Simple & Free)
             const video = document.getElementById('videoPlayer');
             if (!video || (!state.videoUrl && !state.isScreenSharing)) return;
             
-            state.isPlaying = !state.isPlaying;
+            state.isPlaying = true;
             state.lastUserAction = Date.now();
             
-            if (state.isPlaying) {
-                video.play().catch(e => {
-                    console.error('Play error:', e);
-                    state.isPlaying = false;
-                });
-            } else {
-                video.pause();
+            video.play().catch(e => {
+                console.error('Play error:', e);
+                state.isPlaying = false;
+            });
+            
+            updateRoom({
+                isPlaying: true,
+                currentTime: video.currentTime || 0,
+                lastActionBy: state.userId,
+                lastActionTime: Date.now()
+            });
+        }
+
+        // Pause video (host only)
+        function pauseVideo() {
+            if (!state.isHost) {
+                alert('⚠️ Only the host can control playback.');
+                return;
             }
             
-            // Immediately update room with current state
+            if (state.videoType === 'iframe') {
+                alert('Google Drive videos play automatically. Use the controls in the video player.');
+                return;
+            }
+            
+            const video = document.getElementById('videoPlayer');
+            if (!video || (!state.videoUrl && !state.isScreenSharing)) return;
+            
+            state.isPlaying = false;
+            state.lastUserAction = Date.now();
+            
+            video.pause();
+            
             updateRoom({
-                isPlaying: state.isPlaying,
+                isPlaying: false,
                 currentTime: video.currentTime || 0,
+                lastActionBy: state.userId,
+                lastActionTime: Date.now()
+            });
+        }
+
+        // Stop video (host only)
+        function stopVideo() {
+            if (!state.isHost) {
+                alert('⚠️ Only the host can control playback.');
+                return;
+            }
+            
+            if (state.videoType === 'iframe') {
+                alert('Google Drive videos play automatically. Use the controls in the video player.');
+                return;
+            }
+            
+            const video = document.getElementById('videoPlayer');
+            if (!video || (!state.videoUrl && !state.isScreenSharing)) return;
+            
+            state.isPlaying = false;
+            state.lastUserAction = Date.now();
+            
+            video.pause();
+            video.currentTime = 0;
+            
+            updateRoom({
+                isPlaying: false,
+                currentTime: 0,
                 lastActionBy: state.userId,
                 lastActionTime: Date.now()
             });
@@ -496,9 +531,8 @@ Option 2: Gofile (Simple & Free)
 
         // Seek video
         function seekVideo(percentage) {
-            // Check if non-host is trying to seek when host-only is enabled
-            if (state.hostOnlyControl && !state.isHost) {
-                alert('⚠️ Host has enabled Host-Only Control. Only the host can seek the video.');
+            if (!state.isHost) {
+                alert('⚠️ Only the host can seek the video.');
                 return;
             }
             
@@ -744,7 +778,7 @@ Option 2: Gofile (Simple & Free)
                                 <h3 class="text-white font-semibold mb-2">✨ Features:</h3>
                                 <ul class="text-white/70 text-sm space-y-1">
                                     <li>• Real-time video sync</li>
-                                    <li>• Everyone can control playback</li>
+                                    <li>• Host controls playback</li>
                                     <li>• 60 FPS screen sharing</li>
                                     <li>• Google Drive & Gofile support</li>
                                     <li>• Shared movie library</li>
@@ -782,15 +816,6 @@ Option 2: Gofile (Simple & Free)
                                         </div>
                                         
                                         ${state.isHost ? `
-                                            <button onclick="toggleHostOnlyControl()" class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold ${
-                                                state.hostOnlyControl
-                                                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                                            }" title="${state.hostOnlyControl ? 'Disable host-only control' : 'Enable host-only control'}">
-                                                <span class="text-lg">${state.hostOnlyControl ? '🔒' : '🔓'}</span>
-                                                <span class="hidden sm:inline">${state.hostOnlyControl ? 'Host Only' : 'All Control'}</span>
-                                            </button>
-                                            
                                             <button onclick="toggleScreenShare()" class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold ${
                                                 state.isScreenSharing
                                                     ? 'bg-red-500 hover:bg-red-600 text-white'
@@ -835,6 +860,39 @@ Option 2: Gofile (Simple & Free)
                                     </div>
                                 ` : ''}
                             </div>
+
+                            <!-- Host Control Buttons -->
+                            ${state.isHost && state.videoType === 'video' && (state.videoUrl || state.isScreenSharing) ? `
+                                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-4 md:p-6 shadow-2xl border border-white/20 mb-4">
+                                    <h3 class="text-white font-semibold mb-3 text-center">🎮 Host Controls</h3>
+                                    <div class="flex items-center justify-center gap-3 flex-wrap">
+                                        <button 
+                                            onclick="playVideo()" 
+                                            class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+                                        >
+                                            <span class="text-xl">▶️</span>
+                                            <span>Play</span>
+                                        </button>
+                                        
+                                        <button 
+                                            onclick="pauseVideo()" 
+                                            class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+                                        >
+                                            <span class="text-xl">⏸️</span>
+                                            <span>Pause</span>
+                                        </button>
+                                        
+                                        <button 
+                                            onclick="stopVideo()" 
+                                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+                                        >
+                                            <span class="text-xl">⏹️</span>
+                                            <span>Stop</span>
+                                        </button>
+                                    </div>
+                                    <p class="text-white/70 text-xs text-center mt-3">These controls sync playback for all viewers in the room</p>
+                                </div>
+                            ` : ''}
 
                             <!-- Controls -->
                             <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-4 md:p-6 shadow-2xl border border-white/20">
@@ -989,63 +1047,54 @@ Option 2: Gofile (Simple & Free)
                                             <span>${formatTime(state.currentTime)}</span>
                                             <span>${formatTime(state.duration)}</span>
                                         </div>
-                                        <div class="w-full bg-white/20 rounded-full h-2 cursor-pointer" onclick="const rect = this.getBoundingClientRect(); const percent = ((event.clientX - rect.left) / rect.width) * 100; seekVideo(percent);">
+                                        <div class="w-full bg-white/20 rounded-full h-2 ${state.isHost ? 'cursor-pointer' : 'cursor-not-allowed'}" onclick="${state.isHost ? 'const rect = this.getBoundingClientRect(); const percent = ((event.clientX - rect.left) / rect.width) * 100; seekVideo(percent);' : ''}">
                                             <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all" style="width: ${progressPercent}%"></div>
                                         </div>
                                     </div>
                                 ` : ''}
                                 
-                                <!-- Playback Controls -->
-                                <div class="flex items-center justify-between gap-4 flex-wrap">
-                                    <div class="flex items-center gap-3">
-                                        ${state.videoType === 'video' ? `
-                                            <button 
-                                                onclick="togglePlay()" 
-                                                ${(!state.videoUrl && !state.isScreenSharing) ? 'disabled' : ''} 
-                                                class="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg"
-                                            >
-                                                <span class="text-xl">${state.isPlaying ? '⏸️' : '▶️'}</span>
-                                                <span>${state.isPlaying ? 'Pause' : 'Play'}</span>
-                                            </button>
-                                        ` : `
-                                            <div class="bg-blue-500/20 border border-blue-500/30 text-blue-200 py-3 px-6 rounded-xl">
-                                                <span class="text-sm">🎬 Use video player controls</span>
-                                            </div>
-                                        `}
+                                <!-- Volume Controls -->
+                                ${state.videoType === 'video' && (state.videoUrl || state.isScreenSharing) ? `
+                                    <div class="flex items-center justify-center gap-3 mb-4">
+                                        <button onclick="toggleMute()" class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg transition-all">
+                                            <span class="text-xl">${state.isMuted || state.volume === 0 ? '🔇' : state.volume < 0.5 ? '🔉' : '🔊'}</span>
+                                        </button>
+                                        <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            value="${state.volume * 100}" 
+                                            oninput="changeVolume(this.value)"
+                                            class="w-32 accent-purple-500"
+                                        >
+                                        <span class="text-white text-sm font-semibold">${Math.round(state.volume * 100)}%</span>
                                     </div>
+                                ` : ''}
+                                
+                                <!-- Status Messages -->
+                                <div class="space-y-2">
+                                    ${state.isHost ? `
+                                        <div class="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg">
+                                            <p class="text-purple-200 text-sm text-center">
+                                                👑 You are the HOST. Use the control buttons above to manage playback for everyone.
+                                            </p>
+                                        </div>
+                                    ` : `
+                                        <div class="p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                                            <p class="text-blue-200 text-sm text-center">
+                                                👀 You are viewing. The host controls the playback.
+                                            </p>
+                                        </div>
+                                    `}
                                     
-                                    ${state.videoType === 'video' ? `
-                                        <div class="flex items-center gap-3">
-                                            <button onclick="toggleMute()" class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg transition-all">
-                                                <span class="text-xl">${state.isMuted || state.volume === 0 ? '🔇' : state.volume < 0.5 ? '🔉' : '🔊'}</span>
-                                            </button>
-                                            <input 
-                                                type="range" 
-                                                min="0" 
-                                                max="100" 
-                                                value="${state.volume * 100}" 
-                                                oninput="changeVolume(this.value)"
-                                                class="w-24 accent-purple-500"
-                                            >
+                                    ${state.videoType === 'iframe' ? `
+                                        <div class="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                                            <p class="text-yellow-200 text-sm text-center">
+                                                ℹ️ Google Drive videos use built-in controls. Use the player's controls to watch.
+                                            </p>
                                         </div>
                                     ` : ''}
                                 </div>
-                                
-                                ${state.hostOnlyControl ? `
-                                    <div class="mt-4 p-3 ${state.isHost ? 'bg-orange-500/20 border-orange-500/30' : 'bg-yellow-500/20 border-yellow-500/30'} border rounded-lg">
-                                        <p class="${state.isHost ? 'text-orange-200' : 'text-yellow-200'} text-sm text-center">
-                                            ${state.isHost 
-                                                ? '🔒 Host-Only Control is ENABLED. Only you can control playback.' 
-                                                : '🔒 Host-Only Control is enabled. Only the host can play, pause, or seek the video.'}
-                                        </p>
-                                    </div>
-                                ` : `
-                                    <div class="mt-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
-                                        <p class="text-green-200 text-sm text-center">
-                                            ✨ Everyone can control playback! Any user can play, pause, or seek the video.
-                                        </p>
-                                    </div>
-                                `}
                             </div>
                         </div>
                     </div>
