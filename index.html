@@ -377,13 +377,13 @@ border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 foc
             appId: "1:1091604037251:web:d59e47e5ce5ccc479be5b6",
             measurementId: "G-R8PDK3MTS4"
         };
-        // Initialize Firebase
+       
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Admin details for login/rules check (MUST BE UPDATED)
-        const ADMIN_EMAIL = "admin@gmail.com"; // 🚨 Replace with your admin email
-        const ADMIN_UID = "RcM7pjI7BWUJgAOVttsoPWX5ruD2"; // 🚨 Replace with your admin user's UID from Firebase Auth console
+        
+        const ADMIN_EMAIL = "admin@gmail.com"; 
+        const ADMIN_UID = "RcM7pjI7BWUJgAOVttsoPWX5ruD2"; 
         
         let movies = [];
         let filteredMovies = [];
@@ -1027,4 +1027,5 @@ ${movie.year || 'N/A'}</p>
     </script>
 </body>
 </html>
+
 
