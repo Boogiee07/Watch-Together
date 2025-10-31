@@ -345,6 +345,19 @@ Option 2: Gofile (Simple & Free)
                     const data = snapshot.val();
                     const video = document.getElementById('videoPlayer');
                     
+                    // Handle screen sharing state
+                    if (data.isScreenSharing && !state.isHost && data.screenHost !== state.userId) {
+                        // Viewer: Show message that host is screen sharing
+                        if (!state.isScreenSharing) {
+                            state.isScreenSharing = true;
+                            render();
+                        }
+                    } else if (!data.isScreenSharing && state.isScreenSharing && !state.isHost) {
+                        // Viewer: Host stopped screen sharing
+                        state.isScreenSharing = false;
+                        render();
+                    }
+                    
                     // Update video URL if changed
                     if (data.videoUrl !== state.videoUrl && !state.isScreenSharing) {
                         state.videoUrl = data.videoUrl;
@@ -365,11 +378,11 @@ Option 2: Gofile (Simple & Free)
                         render();
                     }
                     
-                    // Sync play/pause state
-                    if (data.isPlaying !== state.isPlaying && state.videoType === 'video') {
+                    // Sync play/pause state (only for non-screen-sharing viewers)
+                    if (data.isPlaying !== state.isPlaying && state.videoType === 'video' && !state.isScreenSharing) {
                         state.isPlaying = data.isPlaying;
                         
-                        if (video && !state.isScreenSharing) {
+                        if (video && !state.isHost) {
                             if (data.isPlaying) {
                                 // Sync time before playing
                                 if (data.currentTime !== undefined) {
@@ -387,8 +400,8 @@ Option 2: Gofile (Simple & Free)
                         render();
                     }
                     
-                    // Sync time if difference is significant (only when playing)
-                    if (video && !state.isScreenSharing && state.videoType === 'video' && data.currentTime !== undefined) {
+                    // Sync time if difference is significant (only when playing and not screen sharing)
+                    if (video && !state.isHost && !state.isScreenSharing && state.videoType === 'video' && data.currentTime !== undefined) {
                         const timeDiff = Math.abs(video.currentTime - data.currentTime);
                         if (timeDiff > 2 && state.isPlaying) {
                             video.currentTime = data.currentTime;
@@ -640,6 +653,11 @@ Option 2: Gofile (Simple & Free)
 
         // Toggle screen share
         async function toggleScreenShare() {
+            if (!state.isHost) {
+                alert('⚠️ Only the host can share screen.');
+                return;
+            }
+            
             if (!state.isScreenSharing) {
                 try {
                     showLoading('Starting screen share...');
@@ -659,6 +677,18 @@ Option 2: Gofile (Simple & Free)
                     state.videoType = 'video';
                     
                     hideLoading();
+                    
+                    // Clear video URL to show screen share
+                    state.videoUrl = '';
+                    
+                    updateRoom({ 
+                        isScreenSharing: true, 
+                        screenHost: state.userId,
+                        isPlaying: true,
+                        videoUrl: '',
+                        videoType: 'video'
+                    });
+                    
                     render();
                     
                     setTimeout(() => {
@@ -673,12 +703,6 @@ Option 2: Gofile (Simple & Free)
                     stream.getVideoTracks()[0].onended = () => {
                         stopScreenShare();
                     };
-
-                    updateRoom({ 
-                        isScreenSharing: true, 
-                        screenHost: state.userId,
-                        isPlaying: true 
-                    });
                 } catch (error) {
                     console.error('Screen share error:', error);
                     if (error.name === 'NotAllowedError') {
@@ -708,7 +732,8 @@ Option 2: Gofile (Simple & Free)
             updateRoom({ 
                 isScreenSharing: false, 
                 screenHost: null,
-                isPlaying: false 
+                isPlaying: false,
+                videoUrl: state.videoUrl || ''
             });
             
             render();
@@ -874,6 +899,14 @@ Option 2: Gofile (Simple & Free)
                                             <div class="text-6xl mb-4">🎬</div>
                                             <p class="text-white text-xl font-semibold">No video loaded</p>
                                             <p class="text-white/70 mt-2">${state.isHost ? 'Choose from library, paste URL, or share your screen' : 'Waiting for host to start'}</p>
+                                        </div>
+                                    </div>
+                                ` : state.isScreenSharing && !state.isHost ? `
+                                    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-green-900/50 to-blue-900/50">
+                                        <div class="text-center">
+                                            <div class="text-6xl mb-4">📺</div>
+                                            <p class="text-white text-xl font-semibold">Host is sharing screen</p>
+                                            <p class="text-white/70 mt-2">You can see what the host is sharing</p>
                                         </div>
                                     </div>
                                 ` : ''}
