@@ -53,7 +53,6 @@
                 <nav class="hidden sm:ml-6 sm:flex sm:space-x-8">
                     <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Home</a>
                     <a href="#library" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Library</a>
-                    <a href="#admin" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Admin</a>
                 </nav>
 
                 <div class="flex-1 max-w-lg mx-4">
@@ -68,15 +67,66 @@
                         <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
                 </div>
+
+                <div class="flex items-center gap-3">
+                    <span id="adminStatus" class="text-sm text-gray-400 hidden">User Mode</span>
+                    <button onclick="showAdminLogin()" id="adminLoginBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150 text-sm">
+                        🔐 Admin Login
+                    </button>
+                    <button onclick="adminLogout()" id="adminLogoutBtn" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-150 text-sm">
+                        🚪 Logout
+                    </button>
+                </div>
             </div>
         </div>
     </header>
+
+    <!-- Admin Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl max-w-md w-full border border-gray-700">
+            <div class="bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-700">
+                <h3 class="text-xl font-bold text-white">🔐 Admin Login</h3>
+                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Admin Password</label>
+                        <input 
+                            type="password" 
+                            id="adminPassword" 
+                            placeholder="Enter admin password"
+                            class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            onkeypress="if(event.key==='Enter') adminLogin()"
+                        >
+                    </div>
+                </div>
+                
+                <button onclick="adminLogin()" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                    🔓 Login
+                </button>
+                <div id="loginMessage" class="mt-4 text-sm text-center"></div>
+                
+                <div class="mt-6 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <p class="text-xs text-yellow-200">
+                        💡 Default password: <strong>admin123</strong><br>
+                        Change this in the script for production use!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content Area -->
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
             <h1 class="text-3xl font-extrabold text-indigo-300">Your Movie Library</h1>
-            <button onclick="toggleAdminPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150">
+            <button onclick="toggleAdminPanel()" id="adminPanelBtn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150">
                 ⚙️ Admin Panel
             </button>
         </div>
@@ -294,10 +344,14 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
+        // Admin password (change this for production!)
+        const ADMIN_PASSWORD = "admin123";
+        
         let movies = [];
         let filteredMovies = [];
         let currentMovie = null;
         let currentSource = 'vidsrc';
+        let isAdmin = false;
 
         const movieListContainer = document.getElementById('movieList');
         const searchBar = document.getElementById('searchBar');
@@ -312,6 +366,86 @@
             '2embed': (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
             moviesapi: (tmdbId) => `https://moviesapi.club/movie/${tmdbId}`
         };
+
+        // Check if admin is logged in (from localStorage)
+        function checkAdminStatus() {
+            const adminLoggedIn = localStorage.getItem('isAdmin') === 'true';
+            if (adminLoggedIn) {
+                isAdmin = true;
+                updateAdminUI();
+            }
+        }
+
+        // Show admin login modal
+        function showAdminLogin() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('adminPassword').focus();
+        }
+
+        // Close login modal
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('loginMessage').innerHTML = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Admin login
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            const loginMessage = document.getElementById('loginMessage');
+
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                localStorage.setItem('isAdmin', 'true');
+                loginMessage.innerHTML = '<p class="text-green-400">✅ Login successful!</p>';
+                setTimeout(() => {
+                    closeLoginModal();
+                    updateAdminUI();
+                    renderMovies(filteredMovies);
+                }, 1000);
+            } else {
+                loginMessage.innerHTML = '<p class="text-red-400">❌ Incorrect password!</p>';
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+
+        // Admin logout
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout from admin mode?')) {
+                isAdmin = false;
+                localStorage.removeItem('isAdmin');
+                updateAdminUI();
+                renderMovies(filteredMovies);
+                
+                // Hide admin panel if open
+                document.getElementById('adminPanel').classList.add('hidden');
+            }
+        }
+
+        // Update UI based on admin status
+        function updateAdminUI() {
+            const adminLoginBtn = document.getElementById('adminLoginBtn');
+            const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+            const adminPanelBtn = document.getElementById('adminPanelBtn');
+            const adminStatus = document.getElementById('adminStatus');
+
+            if (isAdmin) {
+                adminLoginBtn.classList.add('hidden');
+                adminLogoutBtn.classList.remove('hidden');
+                adminPanelBtn.classList.remove('hidden');
+                adminStatus.classList.remove('hidden');
+                adminStatus.textContent = '👑 Admin Mode';
+                adminStatus.classList.remove('text-gray-400');
+                adminStatus.classList.add('text-green-400');
+            } else {
+                adminLoginBtn.classList.remove('hidden');
+                adminLogoutBtn.classList.add('hidden');
+                adminPanelBtn.classList.add('hidden');
+                adminStatus.classList.add('hidden');
+            }
+        }
 
         /**
          * Loads movies from Firebase Realtime Database
@@ -333,12 +467,11 @@
                     loadingIndicator.classList.add('hidden');
                     movieListContainer.classList.remove('hidden');
                 } else {
-                    // No movies in database yet
                     movies = [];
                     filteredMovies = [];
                     loadingIndicator.classList.add('hidden');
                     noResultsMessage.classList.remove('hidden');
-                    noResultsMessage.querySelector('p').textContent = 'No movies in database. Use the admin panel to add some!';
+                    noResultsMessage.querySelector('p').textContent = 'No movies in database. Admin can add movies!';
                 }
             }, (error) => {
                 console.error('Firebase error:', error);
@@ -360,6 +493,32 @@
                 noResultsMessage.classList.add('hidden');
                 
                 moviesToDisplay.forEach(movie => {
+                    const adminButtons = isAdmin ? `
+                        <button 
+                            onclick='editMovie(${JSON.stringify(movie)}, event)'
+                            class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold text-sm"
+                        >
+                            ✏️
+                        </button>
+                    ` : '';
+
+                    const adminCardButtons = isAdmin ? `
+                        <div class="flex gap-2 mt-2">
+                            <button 
+                                onclick='editMovie(${JSON.stringify(movie)}, event)'
+                                class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
+                            >
+                                ✏️ Edit
+                            </button>
+                            <button 
+                                onclick='deleteMovie(${JSON.stringify(movie)}, event)'
+                                class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
+                            >
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    ` : '';
+
                     const movieCardHtml = `
                         <div class="movie-card bg-gray-800 rounded-xl overflow-hidden shadow-xl border border-gray-700">
                             <div class="relative group">
@@ -377,12 +536,7 @@
                                         >
                                             ▶️ Play
                                         </button>
-                                        <button 
-                                            onclick='editMovie(${JSON.stringify(movie)}, event)'
-                                            class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold text-sm"
-                                        >
-                                            ✏️
-                                        </button>
+                                        ${adminButtons}
                                     </div>
                                 </div>
                             </div>
@@ -396,20 +550,7 @@
                                 >
                                     🎬 Watch Now
                                 </button>
-                                <div class="flex gap-2 mt-2">
-                                    <button 
-                                        onclick='editMovie(${JSON.stringify(movie)}, event)'
-                                        class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
-                                    >
-                                        ✏️ Edit
-                                    </button>
-                                    <button 
-                                        onclick='deleteMovie(${JSON.stringify(movie)}, event)'
-                                        class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
-                                    >
-                                        🗑️ Delete
-                                    </button>
-                                </div>
+                                ${adminCardButtons}
                             </div>
                         </div>
                     `;
@@ -449,10 +590,8 @@
             
             document.getElementById('modalTitle').textContent = movie.title;
             
-            // Load the movie with default source
             loadMovieSource(currentSource);
             
-            // Reset active tab
             document.querySelectorAll('.source-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -469,10 +608,8 @@
             const player = document.getElementById('moviePlayer');
             
             if (currentMovie.movieUrl) {
-                // Use direct URL if available
                 player.src = currentMovie.movieUrl;
             } else if (currentMovie.tmdbId && streamingSources[source]) {
-                // Use streaming service with TMDB ID
                 player.src = streamingSources[source](currentMovie.tmdbId);
             } else {
                 alert('Unable to load movie from this source.');
@@ -486,7 +623,6 @@
             currentSource = source;
             loadMovieSource(source);
             
-            // Update active tab
             document.querySelectorAll('.source-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -580,12 +716,17 @@
         }
 
         /**
-         * Opens edit modal for a movie
+         * Opens edit modal for a movie (Admin only)
          */
         function editMovie(movie, event) {
             if (event) {
                 event.preventDefault();
                 event.stopPropagation();
+            }
+            
+            if (!isAdmin) {
+                alert('Admin access required to edit movies!');
+                return;
             }
             
             document.getElementById('editMovieId').value = movie.id;
@@ -609,9 +750,14 @@
         }
 
         /**
-         * Updates a movie in Firebase
+         * Updates a movie in Firebase (Admin only)
          */
         function updateMovie() {
+            if (!isAdmin) {
+                alert('Admin access required!');
+                return;
+            }
+
             const id = document.getElementById('editMovieId').value;
             const title = document.getElementById('editTitle').value.trim();
             const year = document.getElementById('editYear').value.trim();
@@ -653,12 +799,17 @@
         }
 
         /**
-         * Deletes a movie from Firebase
+         * Deletes a movie from Firebase (Admin only)
          */
         function deleteMovie(movie, event) {
             if (event) {
                 event.preventDefault();
                 event.stopPropagation();
+            }
+            
+            if (!isAdmin) {
+                alert('Admin access required to delete movies!');
+                return;
             }
             
             if (confirm(`Are you sure you want to delete "${movie.title}"? This action cannot be undone.`)) {
@@ -677,6 +828,11 @@
          * Toggles admin panel visibility
          */
         function toggleAdminPanel() {
+            if (!isAdmin) {
+                alert('Admin access required!');
+                return;
+            }
+
             const panel = document.getElementById('adminPanel');
             panel.classList.toggle('hidden');
             
@@ -686,9 +842,14 @@
         }
 
         /**
-         * Adds a new movie to Firebase
+         * Adds a new movie to Firebase (Admin only)
          */
         function addMovie() {
+            if (!isAdmin) {
+                alert('Admin access required!');
+                return;
+            }
+
             const title = document.getElementById('newTitle').value.trim();
             const year = document.getElementById('newYear').value.trim();
             const posterUrl = document.getElementById('newPoster').value.trim();
@@ -719,7 +880,6 @@
             })
             .then(() => {
                 adminMessage.innerHTML = '<p class="text-green-400">✅ Movie added successfully!</p>';
-                // Clear form
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newYear').value = '';
                 document.getElementById('newPoster').value = '';
@@ -735,7 +895,7 @@
             });
         }
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         document.getElementById('movieModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
@@ -748,16 +908,24 @@
             }
         });
 
-        // Close modal with Escape key
+        document.getElementById('loginModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLoginModal();
+            }
+        });
+
+        // Close modals with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeModal();
                 closeEditModal();
+                closeLoginModal();
             }
         });
 
-        // Load movies when page loads
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
+            checkAdminStatus();
             loadMoviesFromFirebase();
         });
     </script>
