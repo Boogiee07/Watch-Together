@@ -861,14 +861,15 @@ Option 2: Gofile (Simple & Free)
                                 ` : ''}
                             </div>
 
-                            <!-- Host Control Buttons -->
-                            ${state.isHost && state.videoType === 'video' && (state.videoUrl || state.isScreenSharing) ? `
+                            <!-- Host Control Buttons - Always Visible for Host -->
+                            ${state.isHost ? `
                                 <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-4 md:p-6 shadow-2xl border border-white/20 mb-4">
                                     <h3 class="text-white font-semibold mb-3 text-center">🎮 Host Controls</h3>
                                     <div class="flex items-center justify-center gap-3 flex-wrap">
                                         <button 
                                             onclick="playVideo()" 
-                                            class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+                                            ${(!state.videoUrl && !state.isScreenSharing) ? 'disabled' : ''}
+                                            class="bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
                                         >
                                             <span class="text-xl">▶️</span>
                                             <span>Play</span>
@@ -876,7 +877,8 @@ Option 2: Gofile (Simple & Free)
                                         
                                         <button 
                                             onclick="pauseVideo()" 
-                                            class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+                                            ${(!state.videoUrl && !state.isScreenSharing) ? 'disabled' : ''}
+                                            class="bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
                                         >
                                             <span class="text-xl">⏸️</span>
                                             <span>Pause</span>
@@ -884,13 +886,18 @@ Option 2: Gofile (Simple & Free)
                                         
                                         <button 
                                             onclick="stopVideo()" 
-                                            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+                                            ${(!state.videoUrl && !state.isScreenSharing) ? 'disabled' : ''}
+                                            class="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
                                         >
                                             <span class="text-xl">⏹️</span>
                                             <span>Stop</span>
                                         </button>
                                     </div>
-                                    <p class="text-white/70 text-xs text-center mt-3">These controls sync playback for all viewers in the room</p>
+                                    <p class="text-white/70 text-xs text-center mt-3">
+                                        ${(state.videoUrl || state.isScreenSharing) 
+                                            ? 'These controls sync playback for all viewers in the room' 
+                                            : 'Load a video or start screen sharing to enable controls'}
+                                    </p>
                                 </div>
                             ` : ''}
 
