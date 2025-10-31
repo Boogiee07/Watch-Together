@@ -4,50 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Library Browser</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom Scrollbar Styling */
         ::-webkit-scrollbar {
             width: 8px;
         }
         ::-webkit-scrollbar-thumb {
-            background: #6D28D9; /* Indigo-700 equivalent */
+            background: #6D28D9;
             border-radius: 10px;
         }
         ::-webkit-scrollbar-track {
-            background: #1F2937; /* Gray-800 equivalent */
+            background: #1F2937;
         }
-        /* Global Styles */
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            background-color: #111827; /* Gray-900 equivalent */
+            background-color: #111827;
         }
-        /* Movie Card Hover Effect */
         .movie-card {
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .movie-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
         }
-        /* Loading Animation */
         .loading {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .source-tab {
+            transition: all 0.2s;
+        }
+        .source-tab.active {
+            background: linear-gradient(to right, #6366f1, #8b5cf6);
+            color: white;
         }
     </style>
 </head>
 <body class="text-white">
 
     <!-- Navigation Bar -->
-    <header class="bg-gray-900 shadow-xl sticky top-0 z-10">
+    <header class="bg-gray-900 shadow-lg sticky top-0 z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0">
                     <span class="text-2xl font-bold text-indigo-400">🎬 MovieVault</span>
                 </div>
                 
+                <nav class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Home</a>
+                    <a href="#library" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Library</a>
+                    <a href="#admin" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Admin</a>
+                </nav>
+
                 <div class="flex-1 max-w-lg mx-4">
                     <div class="relative">
                         <input
@@ -60,11 +68,6 @@
                         <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
                 </div>
-                
-                <!-- User ID Display (MANDATORY for multi-user apps) -->
-                <div id="userIdDisplay" class="hidden sm:block text-xs text-gray-400 truncate ml-4" title="Your User ID">
-                    <!-- User ID will be inserted here -->
-                </div>
             </div>
         </div>
     </header>
@@ -73,7 +76,7 @@
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
             <h1 class="text-3xl font-extrabold text-indigo-300">Your Movie Library</h1>
-            <button onclick="toggleAdminPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150 shadow-md">
+            <button onclick="toggleAdminPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150">
                 ⚙️ Admin Panel
             </button>
         </div>
@@ -86,7 +89,7 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             </div>
-            <p class="text-gray-400 mt-4">Initializing Firebase and loading movies...</p>
+            <p class="text-gray-400 mt-4">Loading movies from Firebase...</p>
         </div>
 
         <!-- Movie List Container (Grid) -->
@@ -100,14 +103,13 @@
 
         <!-- Error Message -->
         <div id="errorMessage" class="hidden text-center py-20">
-            <p class="text-xl text-red-400">Failed to load movies. Please check your connection or authentication status.</p>
+            <p class="text-xl text-red-400">Failed to load movies. Please check your connection.</p>
         </div>
 
         <!-- Admin Panel (Toggle) -->
         <div id="adminPanel" class="hidden mt-12 border-t border-gray-700 pt-8">
-            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-2xl">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
                 <h2 class="text-2xl font-bold text-indigo-300 mb-4">Add New Movie</h2>
-                <div id="adminMessage" class="mt-4 text-sm h-6"></div> <!-- Used for status messages (was previously only below buttons) -->
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Movie Title *</label>
@@ -119,7 +121,7 @@
                             <input type="number" id="newYear" placeholder="2024" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID *</label>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID</label>
                             <input type="text" id="newTmdbId" placeholder="550 (for Fight Club)" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                     </div>
@@ -127,25 +129,30 @@
                         <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
                         <input type="text" id="newPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Direct Movie URL (Optional)</label>
+                        <input type="text" id="newMovieUrl" placeholder="https://your-streaming-url.com/movie.mp4" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <p class="text-xs text-gray-400 mt-1">💡 Leave empty to use TMDB ID with multiple streaming sources</p>
+                    </div>
                 </div>
                 <div class="flex gap-3 mt-6">
-                    <button onclick="addMovie()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold shadow-lg">
-                        ➕ Add Movie to Firestore
+                    <button onclick="addMovie()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        ➕ Add Movie to Firebase
                     </button>
-                    <button onclick="toggleAdminPanel()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 shadow-lg">
+                    <button onclick="toggleAdminPanel()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150">
                         Cancel
                     </button>
                 </div>
+                <div id="adminMessage" class="mt-4 text-sm"></div>
                 
                 <div class="mt-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
                     <p class="text-sm text-blue-200 font-semibold mb-2">📝 How to find TMDB ID:</p>
                     <ol class="text-xs text-blue-100 space-y-1 list-decimal list-inside">
-                        <li>Go to <a href="https://www.themoviedb.org/" target="_blank" class="underline hover:text-white">themoviedb.org</a></li>
+                        <li>Go to <a href="https://www.themoviedb.org/" target="_blank" class="underline">themoviedb.org</a></li>
                         <li>Search for your movie</li>
                         <li>Look at the URL: themoviedb.org/movie/<strong>TMDB_ID</strong>-movie-name</li>
                         <li>Copy the ID number and paste it above</li>
                     </ol>
-                    <p class="text-xs text-blue-100 mt-2">Example: For "Fight Club", the ID is <strong>550</strong></p>
                 </div>
             </div>
         </div>
@@ -153,12 +160,9 @@
 
     <!-- Movie Player Modal -->
     <div id="movieModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-900 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-700 shadow-2xl">
+        <div class="bg-gray-900 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-700">
             <div class="bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-700">
-                <div>
-                    <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
-                    <p class="text-sm text-gray-400 mt-1" id="sourceLabel">Powered by 2Embed</p>
-                </div>
+                <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -166,164 +170,119 @@
                 </button>
             </div>
             
-            <!-- Source Selection Tabs (UPDATED to include all 4 sources) -->
+            <!-- Source Selection Tabs -->
             <div class="bg-gray-800 px-6 py-3 border-b border-gray-700">
-                <div class="flex gap-2 justify-center flex-wrap">
-                    <button onclick="switchSource('2embed')" class="source-tab px-4 py-2 rounded-lg text-xs md:text-sm font-semibold text-white transition" data-source="2embed">
-                        2Embed
-                    </button>
-                    <button onclick="switchSource('vidsrc')" class="source-tab px-4 py-2 rounded-lg text-xs md:text-sm font-semibold text-white transition" data-source="vidsrc">
+                <div class="flex gap-2 overflow-x-auto">
+                    <button onclick="switchSource('vidsrc')" class="source-tab active px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="vidsrc">
                         VidSrc
                     </button>
-                    <button onclick="switchSource('flixhq')" class="source-tab px-4 py-2 rounded-lg text-xs md:text-sm font-semibold text-white transition" data-source="flixhq">
-                        FlixHQ
+                    <button onclick="switchSource('embedsu')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="embedsu">
+                        Embed.su
                     </button>
-                    <button onclick="switchSource('upcloud')" class="source-tab px-4 py-2 rounded-lg text-xs md:text-sm font-semibold text-white transition" data-source="upcloud">
-                        UpCloud
+                    <button onclick="switchSource('2embed')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="2embed">
+                        2Embed
+                    </button>
+                    <button onclick="switchSource('moviesapi')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="moviesapi">
+                        MoviesAPI
                     </button>
                 </div>
-                <p class="text-xs text-gray-400 text-center mt-2">Switch sources if one doesn't work</p>
             </div>
             
-            <div class="p-4 md:p-6">
-                <div id="playerContainer" class="aspect-video bg-black rounded-lg overflow-hidden mb-4 relative shadow-inner">
+            <div class="p-6">
+                <div class="aspect-video bg-black rounded-lg overflow-hidden mb-4">
                     <iframe 
                         id="moviePlayer" 
                         src="" 
                         class="w-full h-full" 
                         allowfullscreen
-                        webkitallowfullscreen
-                        mozallowfullscreen
                         allow="autoplay; fullscreen; picture-in-picture"
                         referrerpolicy="origin"
                     ></iframe>
-                    <button 
-                        onclick="toggleFullscreen()" 
-                        class="absolute bottom-4 right-4 bg-black/70 hover:bg-indigo-600/90 text-white p-3 rounded-full transition-all z-10 shadow-lg"
-                        title="Toggle Fullscreen"
-                    >
-                        <svg id="fullscreenIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
-                        </svg>
-                    </button>
                 </div>
                 <div class="flex gap-3 flex-wrap">
-                    <button onclick="openInNewTab()" class="flex-1 min-w-[200px] bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold shadow-md">
+                    <button onclick="openInNewTab()" class="flex-1 min-w-[200px] bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
                         🚀 Open in New Tab
                     </button>
-                    <button onclick="copyMovieLink()" class="flex-1 min-w-[200px] bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold shadow-md">
+                    <button onclick="copyMovieLink()" class="flex-1 min-w-[200px] bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
                         📋 Copy Link
                     </button>
                 </div>
                 <p class="text-xs text-gray-400 mt-3 text-center">
-                    💡 Click the fullscreen button in the player or press F11 for the best viewing experience
+                    💡 Try different sources if one doesn't work. Quality may vary by source.
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- Firebase Modular SDKs (type="module" is required for imports) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, addDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Expose Firebase modules to the global scope for use in the main script block
-        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, query, onSnapshot, addDoc, doc, deleteDoc };
-    </script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
-        // Use the exposed modules after the import script runs
-        const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, query, onSnapshot, addDoc } = window.firebaseModules;
-        
-        // --- Firebase/Auth Setup ---
-        // Global variables are provided by the environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsRmqn4UU6Ots1Yx8m69T6gHAgEeQGcW8",
+            authDomain: "watch-together-80f0e.firebaseapp.com",
+            databaseURL: "https://watch-together-80f0e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "watch-together-80f0e",
+            storageBucket: "watch-together-80f0e.firebasestorage.app",
+            messagingSenderId: "1091604037251",
+            appId: "1:1091604037251:web:d59e47e5ce5ccc479be5b6",
+            measurementId: "G-R8PDK3MTS4"
+        };
 
-        // Initialize Firebase services
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        // Global State
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let movies = [];
         let filteredMovies = [];
         let currentMovie = null;
-        let currentSource = '2embed';
-        let userId = null; // User ID to be populated by onAuthStateChanged
+        let currentSource = 'vidsrc';
 
-        // DOM Elements
         const movieListContainer = document.getElementById('movieList');
         const searchBar = document.getElementById('searchBar');
         const noResultsMessage = document.getElementById('noResults');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const errorMessage = document.getElementById('errorMessage');
-        const adminMessage = document.getElementById('adminMessage');
-        const userIdDisplay = document.getElementById('userIdDisplay');
 
-        // Streaming sources URLs (FIXED: Added commas)
+        // Streaming source URLs
         const streamingSources = {
+            vidsrc: (tmdbId) => `https://vidsrc.xyz/embed/movie/${tmdbId}`,
+            embedsu: (tmdbId) => `https://embed.su/embed/movie/${tmdbId}`,
             '2embed': (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
-            'vidsrc': (tmdbId) => `https://vidsrc.xyz/embed/movie/${tmdbId}`,
-            'flixhq': (tmdbId) => `https://flixhq.to/watch/${tmdbId}`,
-            'upcloud': (tmdbId) => `https://upcloud.link/movie/${tmdbId}`,
+            moviesapi: (tmdbId) => `https://moviesapi.club/movie/${tmdbId}`
         };
 
-        // Streaming source display names for the UI
-        const sourceDisplayNames = {
-            '2embed': '2Embed',
-            'vidsrc': 'VidSrc',
-            'flixhq': 'FlixHQ',
-            'upcloud': 'UpCloud'
-        };
-        
         /**
-         * Get the reference to the user's private movie collection in Firestore.
-         */
-        function getMovieCollectionRef() {
-            if (!userId) {
-                console.error("User ID is not available for collection reference.");
-                return null;
-            }
-            // Path: /artifacts/{appId}/users/{userId}/movies
-            return collection(db, 'artifacts', appId, 'users', userId, 'movies');
-        }
-
-        /**
-         * Loads movies from Firestore using a real-time snapshot listener.
+         * Loads movies from Firebase Realtime Database
          */
         function loadMoviesFromFirebase() {
-            const moviesRef = getMovieCollectionRef();
-
-            if (!moviesRef) {
-                console.log("Waiting for user authentication to load movies...");
-                return; 
-            }
+            const moviesRef = database.ref('movies');
             
-            // Use onSnapshot for real-time updates from Firestore
-            onSnapshot(moviesRef, (snapshot) => {
-                movies = [];
-                snapshot.forEach(doc => {
-                    movies.push({ id: doc.id, ...doc.data() });
-                });
+            moviesRef.on('value', (snapshot) => {
+                const data = snapshot.val();
                 
-                filteredMovies = [...movies];
-                renderMovies(filteredMovies);
-                
-                // Hide loading/show main content
-                loadingIndicator.classList.add('hidden');
-                movieListContainer.classList.remove('hidden');
-
-                // Update empty state message
-                if (movies.length === 0 && searchBar.value.length === 0) {
-                    noResultsMessage.classList.remove('hidden');
-                    noResultsMessage.querySelector('p').textContent = 'No movies in your library. Use the Admin Panel to add your first movie!';
+                if (data) {
+                    movies = Object.keys(data).map(key => ({
+                        id: key,
+                        ...data[key]
+                    }));
+                    
+                    filteredMovies = [...movies];
+                    renderMovies(filteredMovies);
+                    loadingIndicator.classList.add('hidden');
+                    movieListContainer.classList.remove('hidden');
                 } else {
-                    noResultsMessage.classList.add('hidden');
+                    // No movies in database yet
+                    movies = [];
+                    filteredMovies = [];
+                    loadingIndicator.classList.add('hidden');
+                    noResultsMessage.classList.remove('hidden');
+                    noResultsMessage.querySelector('p').textContent = 'No movies in database. Use the admin panel to add some!';
                 }
             }, (error) => {
-                console.error('Firestore error:', error);
+                console.error('Firebase error:', error);
                 loadingIndicator.classList.add('hidden');
                 errorMessage.classList.remove('hidden');
             });
@@ -342,20 +301,19 @@
                 noResultsMessage.classList.add('hidden');
                 
                 moviesToDisplay.forEach(movie => {
-                    const poster = movie.posterUrl || 'https://placehold.co/200x300/6D28D9/ffffff?text=' + encodeURIComponent(movie.title);
                     const movieCardHtml = `
                         <div class="movie-card bg-gray-800 rounded-xl overflow-hidden shadow-xl border border-gray-700">
                             <div class="relative group">
                                 <img 
-                                    src="${poster}" 
+                                    src="${movie.posterUrl || 'https://placehold.co/200x300/6D28D9/ffffff?text=' + encodeURIComponent(movie.title)}" 
                                     alt="${movie.title} Poster" 
-                                    class="w-full h-auto object-cover border-b border-gray-700 aspect-[2/3]"
+                                    class="w-full h-auto object-cover border-b border-gray-700"
                                     onerror="this.onerror=null; this.src='https://placehold.co/200x300/000000/FFFFFF?text=No+Poster'"
                                 >
                                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center">
                                     <button 
-                                        onclick='watchMovie(${JSON.stringify(movie).replace(/'/g, "\\'")}, event)'
-                                        class="opacity-0 group-hover:opacity-100 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold shadow-lg"
+                                        onclick='watchMovie(${JSON.stringify(movie)}, event)'
+                                        class="opacity-0 group-hover:opacity-100 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold"
                                     >
                                         ▶️ Play
                                     </button>
@@ -366,8 +324,8 @@
                                 <h3 class="text-lg font-semibold truncate text-indigo-300" title="${movie.title}">${movie.title}</h3>
                                 <p class="text-sm text-gray-400 mt-1">Year: ${movie.year || 'N/A'}</p>
                                 <button 
-                                    onclick='watchMovie(${JSON.stringify(movie).replace(/'/g, "\\'")}, event)'
-                                    class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150 shadow-md"
+                                    onclick='watchMovie(${JSON.stringify(movie)}, event)'
+                                    class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
                                 >
                                     🎬 Watch Now
                                 </button>
@@ -392,7 +350,7 @@
         }
 
         /**
-         * Opens the movie in a modal player (FIXED: Removed alert() for missing TMDB ID)
+         * Opens the movie in a modal player
          */
         function watchMovie(movie, event) {
             if (event) {
@@ -400,56 +358,43 @@
                 event.stopPropagation();
             }
             
-            if (!movie.tmdbId) {
-                // If TMDB ID is missing, open admin panel and display a message
-                const panel = document.getElementById('adminPanel');
-                if (panel.classList.contains('hidden')) {
-                     panel.classList.remove('hidden');
-                }
-                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                adminMessage.innerHTML = `<p class="text-yellow-400 font-medium">⚠️ Cannot play "${movie.title}". Please update its TMDB ID in the Admin Panel!</p>`;
-                setTimeout(() => { adminMessage.innerHTML = ''; }, 6000);
+            if (!movie.tmdbId && !movie.movieUrl) {
+                alert('No streaming source available for this movie. Please add a TMDB ID or direct URL.');
                 return;
             }
             
             currentMovie = movie;
-            currentSource = '2embed'; // Default source
+            currentSource = 'vidsrc';
             
             document.getElementById('modalTitle').textContent = movie.title;
             
-            // Load movie with default source
+            // Load the movie with default source
             loadMovieSource(currentSource);
             
-            // Reset active tab to default ('2embed')
+            // Reset active tab
             document.querySelectorAll('.source-tab').forEach(tab => {
-                tab.classList.remove('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600', 'bg-indigo-600');
-                tab.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                tab.classList.remove('active');
             });
-            document.querySelector('[data-source="2embed"]').classList.add('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600', 'bg-indigo-600');
-            document.querySelector('[data-source="2embed"]').classList.remove('bg-gray-700', 'hover:bg-gray-600');
+            document.querySelector('[data-source="vidsrc"]').classList.add('active');
             
             document.getElementById('movieModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
 
         /**
-         * Loads movie from specific source and updates the label. (FIXED: Label and error handling)
+         * Loads movie from specific source
          */
         function loadMovieSource(source) {
             const player = document.getElementById('moviePlayer');
-            const sourceLabel = document.getElementById('sourceLabel');
             
-            // Get the friendly display name from the mapping, falling back to the key
-            const displayName = sourceDisplayNames[source] || source;
-
-            if (currentMovie.tmdbId && streamingSources[source]) {
+            if (currentMovie.movieUrl) {
+                // Use direct URL if available
+                player.src = currentMovie.movieUrl;
+            } else if (currentMovie.tmdbId && streamingSources[source]) {
+                // Use streaming service with TMDB ID
                 player.src = streamingSources[source](currentMovie.tmdbId);
-                // Use the correct, capitalized display name
-                sourceLabel.textContent = `Powered by ${displayName}`; 
             } else {
-                // IMPORTANT: Removed alert() and replaced with non-intrusive console error and label update
-                console.error(`Attempted to load movie from source: ${source}. Missing TMDB ID or unknown source key.`);
-                sourceLabel.textContent = `Error loading source: ${displayName}`;
+                alert('Unable to load movie from this source.');
             }
         }
 
@@ -460,64 +405,18 @@
             currentSource = source;
             loadMovieSource(source);
             
-            // Update active tab styling
+            // Update active tab
             document.querySelectorAll('.source-tab').forEach(tab => {
-                tab.classList.remove('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600', 'bg-indigo-600');
-                tab.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                tab.classList.remove('active');
             });
-            const activeTab = document.querySelector(`[data-source="${source}"]`);
-            activeTab.classList.add('bg-gradient-to-r', 'from-indigo-600', 'to-purple-600', 'bg-indigo-600');
-            activeTab.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-        }
-
-        /**
-         * Toggle fullscreen mode
-         */
-        function toggleFullscreen() {
-            const container = document.getElementById('playerContainer');
-            
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
-                // Enter fullscreen
-                if (container.requestFullscreen) {
-                    container.requestFullscreen();
-                } else if (container.webkitRequestFullscreen) {
-                    container.webkitRequestFullscreen();
-                } else if (container.mozRequestFullScreen) {
-                    container.mozRequestFullScreen();
-                } else if (container.msRequestFullscreen) {
-                    container.msRequestFullscreen();
-                }
-            } else {
-                // Exit fullscreen
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-            }
+            event.target.classList.add('active');
         }
 
         /**
          * Closes the movie modal
          */
         function closeModal() {
-            // Exit fullscreen if active
-            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                }
-            }
-            
             document.getElementById('movieModal').classList.add('hidden');
-            // Stop video playback by clearing the iframe source
             document.getElementById('moviePlayer').src = '';
             document.body.style.overflow = 'auto';
             currentMovie = null;
@@ -527,68 +426,51 @@
          * Opens the movie in a new tab
          */
         function openInNewTab() {
-            if (currentMovie && currentMovie.tmdbId && streamingSources[currentSource]) {
-                const url = streamingSources[currentSource](currentMovie.tmdbId);
-                window.open(url, '_blank');
-            }
-        }
-
-        /**
-         * Copies the movie link to clipboard (FIXED: Removed alert() on failure)
-         */
-        function copyMovieLink() {
-            if (currentMovie && currentMovie.tmdbId && streamingSources[currentSource]) {
-                const url = streamingSources[currentSource](currentMovie.tmdbId);
-                // Use execCommand as a reliable fallback/alternative for iframe contexts
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(url)
-                    .then(() => {
-                         showCopySuccess();
-                    })
-                    .catch(err => {
-                        console.error('Copy using clipboard API failed, trying execCommand:', err);
-                        // Fallback using execCommand
-                        const tempInput = document.createElement('input');
-                        document.body.appendChild(tempInput);
-                        tempInput.value = url;
-                        tempInput.select();
-                        try {
-                            document.execCommand('copy');
-                            showCopySuccess();
-                        } catch (execErr) {
-                            console.error('execCommand copy failed:', execErr);
-                        }
-                        document.body.removeChild(tempInput);
-                    });
-                } else {
-                    // execCommand fallback
-                    const tempInput = document.createElement('input');
-                    document.body.appendChild(tempInput);
-                    tempInput.value = url;
-                    tempInput.select();
-                    try {
-                        document.execCommand('copy');
-                        showCopySuccess();
-                    } catch (execErr) {
-                        console.error('execCommand copy failed:', execErr);
-                    }
-                    document.body.removeChild(tempInput);
+            if (currentMovie) {
+                let url;
+                if (currentMovie.movieUrl) {
+                    url = currentMovie.movieUrl;
+                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
+                    url = streamingSources[currentSource](currentMovie.tmdbId);
+                }
+                
+                if (url) {
+                    window.open(url, '_blank');
                 }
             }
         }
 
-        function showCopySuccess() {
-            const btn = event.target;
-            const originalText = '📋 Copy Link';
-            btn.textContent = '✅ Copied!';
-            btn.classList.add('bg-green-600');
-            btn.classList.remove('bg-gray-700');
-            
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.classList.remove('bg-green-600');
-                btn.classList.add('bg-gray-700');
-            }, 2000);
+        /**
+         * Copies the movie link to clipboard
+         */
+        function copyMovieLink() {
+            if (currentMovie) {
+                let url;
+                if (currentMovie.movieUrl) {
+                    url = currentMovie.movieUrl;
+                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
+                    url = streamingSources[currentSource](currentMovie.tmdbId);
+                }
+                
+                if (url) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        const btn = event.target;
+                        const originalText = btn.textContent;
+                        btn.textContent = '✅ Copied!';
+                        btn.classList.add('bg-green-600');
+                        btn.classList.remove('bg-gray-700');
+                        
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.classList.remove('bg-green-600');
+                            btn.classList.add('bg-gray-700');
+                        }, 2000);
+                    }).catch(err => {
+                        alert('Failed to copy link');
+                        console.error('Copy error:', err);
+                    });
+                }
+            }
         }
 
         /**
@@ -604,95 +486,55 @@
         }
 
         /**
-         * Adds a new movie to Firestore (UPDATED: Uses addDoc)
+         * Adds a new movie to Firebase
          */
-        async function addMovie() {
+        function addMovie() {
             const title = document.getElementById('newTitle').value.trim();
             const year = document.getElementById('newYear').value.trim();
             const posterUrl = document.getElementById('newPoster').value.trim();
             const tmdbId = document.getElementById('newTmdbId').value.trim();
+            const movieUrl = document.getElementById('newMovieUrl').value.trim();
+            const adminMessage = document.getElementById('adminMessage');
 
             if (!title) {
                 adminMessage.innerHTML = '<p class="text-red-400">⚠️ Title is required!</p>';
                 return;
             }
 
-            if (!tmdbId) {
-                adminMessage.innerHTML = '<p class="text-red-400">⚠️ TMDB ID is required!</p>';
+            if (!tmdbId && !movieUrl) {
+                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Either TMDB ID or Movie URL is required!</p>';
                 return;
             }
 
-            const moviesRef = getMovieCollectionRef();
-            if (!moviesRef) {
-                 adminMessage.innerHTML = '<p class="text-red-400">❌ Error: Authentication failed. Cannot save movie.</p>';
-                 return;
-            }
+            adminMessage.innerHTML = '<p class="text-blue-400">⏳ Adding movie...</p>';
 
-            adminMessage.innerHTML = '<p class="text-blue-400">⏳ Adding movie to Firestore...</p>';
-
-            try {
-                await addDoc(moviesRef, {
-                    title: title,
-                    year: year || null,
-                    posterUrl: posterUrl || null,
-                    tmdbId: tmdbId,
-                    addedAt: Date.now()
-                });
-                
+            const newMovieRef = database.ref('movies').push();
+            newMovieRef.set({
+                title: title,
+                year: year || null,
+                posterUrl: posterUrl || null,
+                tmdbId: tmdbId || null,
+                movieUrl: movieUrl || null,
+                addedAt: Date.now()
+            })
+            .then(() => {
                 adminMessage.innerHTML = '<p class="text-green-400">✅ Movie added successfully!</p>';
                 // Clear form
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newYear').value = '';
                 document.getElementById('newPoster').value = '';
                 document.getElementById('newTmdbId').value = '';
+                document.getElementById('newMovieUrl').value = '';
                 
                 setTimeout(() => {
                     adminMessage.innerHTML = '';
                 }, 3000);
-            }
-            catch(error) {
+            })
+            .catch((error) => {
                 adminMessage.innerHTML = `<p class="text-red-400">❌ Error: ${error.message}</p>`;
-                console.error("Error adding document: ", error);
-            }
-        }
-        
-        // --- Event Listeners and Initializers ---
-
-        // 1. Initial Authentication Logic
-        async function authenticateAndLoad() {
-            try {
-                // Sign in using custom token if available, otherwise sign in anonymously
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Firebase authentication error:", error);
-                loadingIndicator.classList.add('hidden');
-                errorMessage.classList.remove('hidden');
-            }
+            });
         }
 
-        // 2. Auth State Listener (MANDATORY for getting user ID)
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;
-                userIdDisplay.textContent = `User ID: ${userId}`;
-                userIdDisplay.classList.remove('hidden');
-                console.log("Authenticated as:", userId);
-                loadMoviesFromFirebase(); // Start loading data after auth
-            } else {
-                // This state should not happen if signInAnonymously is successful, 
-                // but handle case where user is not available
-                userId = crypto.randomUUID(); // Fallback to a random ID for unauthenticated state
-                userIdDisplay.textContent = `Anon ID: ${userId}`;
-                userIdDisplay.classList.remove('hidden');
-                console.warn("Using Anonymous/Fallback User ID:", userId);
-                loadMoviesFromFirebase();
-            }
-        });
-        
         // Close modal when clicking outside
         document.getElementById('movieModal').addEventListener('click', function(e) {
             if (e.target === this) {
@@ -700,39 +542,16 @@
             }
         });
 
-        // Close modal with Escape key and F11 for fullscreen toggle
+        // Close modal with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeModal();
             }
-            // F11 for fullscreen
-            if (e.key === 'F11') {
-                e.preventDefault();
-                toggleFullscreen();
-            }
         });
 
-        // Update fullscreen icon when fullscreen state changes
-        document.addEventListener('fullscreenchange', updateFullscreenIcon);
-        document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-        document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
-
-        function updateFullscreenIcon() {
-            const icon = document.getElementById('fullscreenIcon');
-            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
-            
-            if (isFullscreen) {
-                // Exit fullscreen icon (X symbol)
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
-            } else {
-                // Enter fullscreen icon (corner arrows)
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>';
-            }
-        }
-
-        // Start the authentication process
+        // Load movies when page loads
         document.addEventListener('DOMContentLoaded', () => {
-             authenticateAndLoad();
+            loadMoviesFromFirebase();
         });
     </script>
 </body>
