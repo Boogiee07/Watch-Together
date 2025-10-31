@@ -76,6 +76,7 @@
             copied: false,
             userId: `user_${Math.random().toString(36).substr(2, 9)}`,
             lastUpdate: 0,
+            lastUserAction: 0,
             screenStream: null,
             roomRef: null,
             volume: 1,
@@ -318,47 +319,70 @@ Option 2: Gofile (Simple & Free)
 
         // Setup room listeners
         function setupRoomListeners() {
+            let isUpdating = false;
+            
             state.roomRef.on('value', (snapshot) => {
-                if (snapshot.exists()) {
+                if (snapshot.exists() && !isUpdating) {
                     const data = snapshot.val();
-                    const now = Date.now();
+                    const video = document.getElementById('videoPlayer');
                     
-                    if (now - state.lastUpdate > 16) {
-                        const video = document.getElementById('videoPlayer');
+                    // Update video URL if changed
+                    if (data.videoUrl !== state.videoUrl && !state.isScreenSharing) {
+                        state.videoUrl = data.videoUrl;
+                        state.videoFileName = data.videoFileName || '';
+                        state.videoType = data.videoType || 'video';
                         
-                        if (video && !state.isScreenSharing && state.videoType === 'video' && Math.abs(video.currentTime - data.currentTime) > 1) {
-                            video.currentTime = data.currentTime;
+                        if (state.videoType === 'video' && video && data.videoUrl) {
+                            video.src = data.videoUrl;
+                            video.load();
+                            video.currentTime = data.currentTime || 0;
+                            
+                            if (data.isPlaying) {
+                                video.play().catch(e => console.log('Play prevented'));
+                            }
                         }
+                        render();
+                    }
+                    
+                    // Sync play/pause state
+                    if (data.isPlaying !== state.isPlaying) {
+                        state.isPlaying = data.isPlaying;
                         
-                        if (data.isPlaying !== state.isPlaying) {
-                            state.isPlaying = data.isPlaying;
-                            if (video && !state.isScreenSharing && state.videoType === 'video') {
-                                if (data.isPlaying) {
-                                    video.play().catch(e => console.log('Play prevented'));
-                                } else {
-                                    video.pause();
+                        if (video && !state.isScreenSharing && state.videoType === 'video') {
+                            if (data.isPlaying) {
+                                // Sync time before playing
+                                if (data.currentTime) {
+                                    video.currentTime = data.currentTime;
+                                }
+                                video.play().catch(e => console.log('Play prevented'));
+                            } else {
+                                video.pause();
+                                // Sync time when pausing
+                                if (data.currentTime) {
+                                    video.currentTime = data.currentTime;
                                 }
                             }
                         }
-                        
-                        if (data.videoUrl !== state.videoUrl && !state.isScreenSharing) {
-                            state.videoUrl = data.videoUrl;
-                            state.videoFileName = data.videoFileName || '';
-                            state.videoType = data.videoType || 'video';
-                            
-                            if (state.videoType === 'video' && video && data.videoUrl) {
-                                video.src = data.videoUrl;
-                                video.currentTime = data.currentTime || 0;
-                            } else {
-                                render();
-                            }
+                        render();
+                    }
+                    
+                    // Sync time if difference is significant
+                    if (video && !state.isScreenSharing && state.videoType === 'video' && data.currentTime) {
+                        const timeDiff = Math.abs(video.currentTime - data.currentTime);
+                        if (timeDiff > 2) {
+                            video.currentTime = data.currentTime;
                         }
-                        
-                        if (data.duration) {
-                            state.duration = data.duration;
-                        }
-                        
-                        state.lastUpdate = now;
+                    }
+                    
+                    // Update duration
+                    if (data.duration && data.duration !== state.duration) {
+                        state.duration = data.duration;
+                        render();
+                    }
+                    
+                    // Update current time for display
+                    if (data.currentTime !== undefined) {
+                        state.currentTime = data.currentTime;
                         render();
                     }
                 }
@@ -381,13 +405,17 @@ Option 2: Gofile (Simple & Free)
                 if (state.isPlaying && !state.isScreenSharing && state.videoType === 'video') {
                     const video = document.getElementById('videoPlayer');
                     if (video && !isNaN(video.currentTime)) {
-                        updateRoom({ 
-                            currentTime: video.currentTime,
-                            duration: video.duration || state.duration
-                        });
+                        // Only update periodically while playing, don't override user actions
+                        const now = Date.now();
+                        if (!state.lastUserAction || now - state.lastUserAction > 3000) {
+                            updateRoom({ 
+                                currentTime: video.currentTime,
+                                duration: video.duration || state.duration
+                            });
+                        }
                     }
                 }
-            }, 1000);
+            }, 2000);
         }
 
         // Update room state
@@ -418,9 +446,12 @@ Option 2: Gofile (Simple & Free)
                 video.pause();
             }
             
+            // Immediately update room with current state
             updateRoom({
                 isPlaying: state.isPlaying,
-                currentTime: video.currentTime || 0
+                currentTime: video.currentTime || 0,
+                lastActionBy: state.userId,
+                lastActionTime: Date.now()
             });
             render();
         }
@@ -436,7 +467,13 @@ Option 2: Gofile (Simple & Free)
             video.currentTime = newTime;
             state.currentTime = newTime;
             
-            updateRoom({ currentTime: newTime });
+            // Immediately update room with seek position
+            updateRoom({ 
+                currentTime: newTime,
+                isPlaying: state.isPlaying,
+                lastActionBy: state.userId,
+                lastActionTime: Date.now()
+            });
             render();
         }
 
