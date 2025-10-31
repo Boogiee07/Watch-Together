@@ -693,15 +693,16 @@
                                         </div>
                                         
                                         <div>
-                                            <label class="block text-white text-sm font-semibold mb-2">📁 Upload Small Video (Not Recommended)</label>
+                                            <label class="block text-white text-sm font-semibold mb-2">📁 Upload Video (Up to 5GB)</label>
                                             <input 
                                                 id="videoFileInput" 
                                                 type="file" 
                                                 accept="video/mp4,video/webm,video/ogg" 
-                                                class="w-full bg-white/20 border border-white/30 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600 file:cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                                                ${state.isUploading ? 'disabled' : ''}
+                                                class="w-full bg-white/20 border border-white/30 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600 file:cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed" 
                                                 onchange="handleFileUpload(this)"
                                             >
-                                            <p class="text-white/50 text-xs mt-2">⚠️ For files over 100MB, use Google Drive instead</p>
+                                            <p class="text-white/50 text-xs mt-2">📤 Uploads to free file hosting • ⚠️ Google Drive recommended for better streaming</p>
                                         </div>
                                     </div>
                                 ` : ''}
