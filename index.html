@@ -75,7 +75,6 @@
             videoType: 'video',
             copied: false,
             userId: `user_${Math.random().toString(36).substr(2, 9)}`,
-            lastUpdate: 0,
             lastUserAction: 0,
             screenStream: null,
             roomRef: null,
@@ -84,7 +83,8 @@
             showDriveInstructions: false,
             showMovieLibrary: false,
             movieLibrary: [],
-            showAddMovie: false
+            showAddMovie: false,
+            isSyncing: false
         };
 
         // Utility Functions
@@ -284,10 +284,14 @@ Option 2: Gofile (Simple & Free)
                                 const video = document.getElementById('videoPlayer');
                                 if (video) {
                                     video.src = state.videoUrl;
-                                    video.currentTime = data.currentTime || 0;
-                                    if (state.isPlaying) {
-                                        video.play().catch(e => console.log('Autoplay prevented'));
-                                    }
+                                    video.load();
+                                    
+                                    video.onloadedmetadata = () => {
+                                        video.currentTime = data.currentTime || 0;
+                                        if (state.isPlaying) {
+                                            video.play().catch(e => console.log('Autoplay prevented'));
+                                        }
+                                    };
                                 }
                             }
                         }
@@ -319,10 +323,8 @@ Option 2: Gofile (Simple & Free)
 
         // Setup room listeners
         function setupRoomListeners() {
-            let isUpdating = false;
-            
             state.roomRef.on('value', (snapshot) => {
-                if (snapshot.exists() && !isUpdating) {
+                if (snapshot.exists() && !state.isSyncing) {
                     const data = snapshot.val();
                     const video = document.getElementById('videoPlayer');
                     
@@ -335,30 +337,32 @@ Option 2: Gofile (Simple & Free)
                         if (state.videoType === 'video' && video && data.videoUrl) {
                             video.src = data.videoUrl;
                             video.load();
-                            video.currentTime = data.currentTime || 0;
                             
-                            if (data.isPlaying) {
-                                video.play().catch(e => console.log('Play prevented'));
-                            }
+                            video.onloadedmetadata = () => {
+                                video.currentTime = data.currentTime || 0;
+                                if (data.isPlaying) {
+                                    video.play().catch(e => console.log('Play prevented'));
+                                }
+                            };
                         }
                         render();
                     }
                     
                     // Sync play/pause state
-                    if (data.isPlaying !== state.isPlaying) {
+                    if (data.isPlaying !== state.isPlaying && state.videoType === 'video') {
                         state.isPlaying = data.isPlaying;
                         
-                        if (video && !state.isScreenSharing && state.videoType === 'video') {
+                        if (video && !state.isScreenSharing) {
                             if (data.isPlaying) {
                                 // Sync time before playing
-                                if (data.currentTime) {
+                                if (data.currentTime !== undefined) {
                                     video.currentTime = data.currentTime;
                                 }
                                 video.play().catch(e => console.log('Play prevented'));
                             } else {
                                 video.pause();
                                 // Sync time when pausing
-                                if (data.currentTime) {
+                                if (data.currentTime !== undefined) {
                                     video.currentTime = data.currentTime;
                                 }
                             }
@@ -366,10 +370,10 @@ Option 2: Gofile (Simple & Free)
                         render();
                     }
                     
-                    // Sync time if difference is significant
-                    if (video && !state.isScreenSharing && state.videoType === 'video' && data.currentTime) {
+                    // Sync time if difference is significant (only when playing)
+                    if (video && !state.isScreenSharing && state.videoType === 'video' && data.currentTime !== undefined) {
                         const timeDiff = Math.abs(video.currentTime - data.currentTime);
-                        if (timeDiff > 2) {
+                        if (timeDiff > 2 && state.isPlaying) {
                             video.currentTime = data.currentTime;
                         }
                     }
@@ -377,14 +381,14 @@ Option 2: Gofile (Simple & Free)
                     // Update duration
                     if (data.duration && data.duration !== state.duration) {
                         state.duration = data.duration;
-                        render();
                     }
                     
                     // Update current time for display
                     if (data.currentTime !== undefined) {
                         state.currentTime = data.currentTime;
-                        render();
                     }
+                    
+                    render();
                 }
             });
 
@@ -401,12 +405,13 @@ Option 2: Gofile (Simple & Free)
                 render();
             });
 
+            // Periodic time sync while playing
             setInterval(() => {
                 if (state.isPlaying && !state.isScreenSharing && state.videoType === 'video') {
                     const video = document.getElementById('videoPlayer');
                     if (video && !isNaN(video.currentTime)) {
-                        // Only update periodically while playing, don't override user actions
                         const now = Date.now();
+                        // Only update if no recent user action
                         if (!state.lastUserAction || now - state.lastUserAction > 3000) {
                             updateRoom({ 
                                 currentTime: video.currentTime,
@@ -421,7 +426,15 @@ Option 2: Gofile (Simple & Free)
         // Update room state
         function updateRoom(updates) {
             if (state.roomRef) {
-                state.roomRef.update(updates).catch(e => console.error('Update error:', e));
+                state.isSyncing = true;
+                state.roomRef.update(updates).then(() => {
+                    setTimeout(() => {
+                        state.isSyncing = false;
+                    }, 100);
+                }).catch(e => {
+                    console.error('Update error:', e);
+                    state.isSyncing = false;
+                });
             }
         }
 
@@ -436,6 +449,7 @@ Option 2: Gofile (Simple & Free)
             if (!video || (!state.videoUrl && !state.isScreenSharing)) return;
             
             state.isPlaying = !state.isPlaying;
+            state.lastUserAction = Date.now();
             
             if (state.isPlaying) {
                 video.play().catch(e => {
@@ -453,7 +467,6 @@ Option 2: Gofile (Simple & Free)
                 lastActionBy: state.userId,
                 lastActionTime: Date.now()
             });
-            render();
         }
 
         // Seek video
@@ -466,6 +479,7 @@ Option 2: Gofile (Simple & Free)
             const newTime = (percentage / 100) * state.duration;
             video.currentTime = newTime;
             state.currentTime = newTime;
+            state.lastUserAction = Date.now();
             
             // Immediately update room with seek position
             updateRoom({ 
@@ -474,7 +488,6 @@ Option 2: Gofile (Simple & Free)
                 lastActionBy: state.userId,
                 lastActionTime: Date.now()
             });
-            render();
         }
 
         // Volume control
@@ -515,7 +528,9 @@ Option 2: Gofile (Simple & Free)
             updateRoom({ 
                 videoUrl: directUrl,
                 videoFileName: state.videoFileName,
-                videoType: videoSource.type
+                videoType: videoSource.type,
+                currentTime: 0,
+                isPlaying: false
             });
             
             render();
@@ -698,10 +713,10 @@ Option 2: Gofile (Simple & Free)
                                 <h3 class="text-white font-semibold mb-2">✨ Features:</h3>
                                 <ul class="text-white/70 text-sm space-y-1">
                                     <li>• Real-time video sync</li>
+                                    <li>• Everyone can control playback</li>
                                     <li>• 60 FPS screen sharing</li>
                                     <li>• Google Drive & Gofile support</li>
                                     <li>• Shared movie library</li>
-                                    <li>• Multi-viewer support</li>
                                 </ul>
                             </div>
                         </div>
@@ -763,8 +778,8 @@ Option 2: Gofile (Simple & Free)
                                         id="videoPlayer" 
                                         class="w-full aspect-video bg-black" 
                                         ${state.videoUrl && !state.isScreenSharing ? `src="${state.videoUrl}"` : ''} 
-                                        ontimeupdate="state.currentTime = this.currentTime; render()" 
-                                        onloadedmetadata="state.duration = this.duration; render()"
+                                        ontimeupdate="if(!state.isSyncing) { state.currentTime = this.currentTime; render(); }" 
+                                        onloadedmetadata="state.duration = this.duration; render();"
                                         ${state.isScreenSharing ? 'muted' : ''}
                                         playsinline
                                     ></video>
