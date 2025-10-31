@@ -40,13 +40,13 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0">
-                    <span class="text-2xl font-bold text-indigo-400">MovieVault</span>
+                    <span class="text-2xl font-bold text-indigo-400">🎬 MovieVault</span>
                 </div>
                 
                 <nav class="hidden sm:ml-6 sm:flex sm:space-x-8">
                     <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Home</a>
-                    <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">About</a>
-                    <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Contact</a>
+                    <a href="#library" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Library</a>
+                    <a href="#admin" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Admin</a>
                 </nav>
 
                 <div class="flex-1 max-w-lg mx-4">
@@ -67,7 +67,12 @@
 
     <!-- Main Content Area -->
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <h1 class="text-3xl font-extrabold text-indigo-300 mb-6 border-b border-gray-700 pb-2">Your Google Drive Movie Library</h1>
+        <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+            <h1 class="text-3xl font-extrabold text-indigo-300">Your Google Drive Movie Library</h1>
+            <button onclick="toggleAdminPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150">
+                ⚙️ Admin Panel
+            </button>
+        </div>
         
         <!-- Loading Indicator -->
         <div id="loadingIndicator" class="text-center py-20">
@@ -95,26 +100,75 @@
         </div>
 
         <!-- Admin Panel (Toggle) -->
-        <div class="mt-12 border-t border-gray-700 pt-8">
-            <button onclick="toggleAdminPanel()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-150">
-                Toggle Admin Panel
-            </button>
-            
-            <div id="adminPanel" class="hidden mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div id="adminPanel" class="hidden mt-12 border-t border-gray-700 pt-8">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
                 <h2 class="text-2xl font-bold text-indigo-300 mb-4">Add New Movie</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" id="newTitle" placeholder="Movie Title" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="number" id="newYear" placeholder="Year" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="text" id="newPoster" placeholder="Poster URL" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="text" id="newDriveId" placeholder="Google Drive File ID" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Movie Title *</label>
+                        <input type="text" id="newTitle" placeholder="Enter movie title" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Year</label>
+                            <input type="number" id="newYear" placeholder="2024" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
+                            <input type="text" id="newPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Google Drive File ID *</label>
+                        <input type="text" id="newDriveId" placeholder="1a2b3c4d5e6f7g8h9i" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <p class="text-xs text-gray-400 mt-1">Get the ID from your Google Drive share link: drive.google.com/file/d/<strong>FILE_ID</strong>/view</p>
+                    </div>
                 </div>
-                <button onclick="addMovie()" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition duration-150">
-                    Add Movie to Firebase
-                </button>
+                <div class="flex gap-3 mt-6">
+                    <button onclick="addMovie()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        ➕ Add Movie to Firebase
+                    </button>
+                    <button onclick="toggleAdminPanel()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150">
+                        Cancel
+                    </button>
+                </div>
                 <div id="adminMessage" class="mt-4 text-sm"></div>
             </div>
         </div>
     </main>
+
+    <!-- Movie Player Modal -->
+    <div id="movieModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-700">
+            <div class="bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-700">
+                <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="aspect-video bg-black rounded-lg overflow-hidden mb-4">
+                    <iframe 
+                        id="moviePlayer" 
+                        src="" 
+                        class="w-full h-full" 
+                        allow="autoplay; encrypted-media" 
+                        allowfullscreen
+                    ></iframe>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openInNewTab()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        🚀 Open in New Tab
+                    </button>
+                    <button onclick="copyDriveLink()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        📋 Copy Drive Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -139,6 +193,7 @@
 
         let movies = [];
         let filteredMovies = [];
+        let currentMovieDriveId = '';
 
         const movieListContainer = document.getElementById('movieList');
         const searchBar = document.getElementById('searchBar');
@@ -193,27 +248,33 @@
                 noResultsMessage.classList.add('hidden');
                 
                 moviesToDisplay.forEach(movie => {
-                    const driveUrl = movie.driveId 
-                        ? `https://drive.google.com/file/d/${movie.driveId}/preview`
-                        : '#';
-                    
                     const movieCardHtml = `
-                        <div class="movie-card bg-gray-800 rounded-xl overflow-hidden cursor-pointer shadow-xl border border-gray-700">
-                            <img 
-                                src="${movie.posterUrl || 'https://placehold.co/200x300/6D28D9/ffffff?text=' + encodeURIComponent(movie.title)}" 
-                                alt="${movie.title} Poster" 
-                                class="w-full h-auto object-cover border-b border-gray-700"
-                                onerror="this.onerror=null; this.src='https://placehold.co/200x300/000000/FFFFFF?text=No+Poster'"
-                            >
+                        <div class="movie-card bg-gray-800 rounded-xl overflow-hidden shadow-xl border border-gray-700">
+                            <div class="relative group">
+                                <img 
+                                    src="${movie.posterUrl || 'https://placehold.co/200x300/6D28D9/ffffff?text=' + encodeURIComponent(movie.title)}" 
+                                    alt="${movie.title} Poster" 
+                                    class="w-full h-auto object-cover border-b border-gray-700"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/200x300/000000/FFFFFF?text=No+Poster'"
+                                >
+                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center">
+                                    <button 
+                                        onclick="watchMovie('${movie.driveId}', '${movie.title.replace(/'/g, "\\'")}', event)"
+                                        class="opacity-0 group-hover:opacity-100 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold"
+                                    >
+                                        ▶️ Play
+                                    </button>
+                                </div>
+                            </div>
                             
                             <div class="p-3">
-                                <h3 class="text-lg font-semibold truncate text-indigo-300">${movie.title}</h3>
+                                <h3 class="text-lg font-semibold truncate text-indigo-300" title="${movie.title}">${movie.title}</h3>
                                 <p class="text-sm text-gray-400 mt-1">Year: ${movie.year || 'N/A'}</p>
                                 <button 
-                                    onclick="watchMovie('${movie.driveId}', '${movie.title}')"
-                                    class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-1.5 rounded-lg transition duration-150"
+                                    onclick="watchMovie('${movie.driveId}', '${movie.title.replace(/'/g, "\\'")}', event)"
+                                    class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
                                 >
-                                    Watch Now
+                                    🎬 Watch Now
                                 </button>
                             </div>
                         </div>
@@ -236,16 +297,72 @@
         }
 
         /**
-         * Opens the movie in Google Drive viewer
+         * Opens the movie in a modal player
          */
-        function watchMovie(driveId, title) {
+        function watchMovie(driveId, title, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
             if (!driveId) {
                 alert('No Google Drive link available for this movie.');
                 return;
             }
             
+            currentMovieDriveId = driveId;
             const driveUrl = `https://drive.google.com/file/d/${driveId}/preview`;
-            window.open(driveUrl, '_blank');
+            
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('moviePlayer').src = driveUrl;
+            document.getElementById('movieModal').classList.remove('hidden');
+            
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        /**
+         * Closes the movie modal
+         */
+        function closeModal() {
+            document.getElementById('movieModal').classList.add('hidden');
+            document.getElementById('moviePlayer').src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        /**
+         * Opens the movie in a new tab
+         */
+        function openInNewTab() {
+            if (currentMovieDriveId) {
+                const driveUrl = `https://drive.google.com/file/d/${currentMovieDriveId}/preview`;
+                window.open(driveUrl, '_blank');
+            }
+        }
+
+        /**
+         * Copies the Google Drive link to clipboard
+         */
+        function copyDriveLink() {
+            if (currentMovieDriveId) {
+                const driveUrl = `https://drive.google.com/file/d/${currentMovieDriveId}/view`;
+                navigator.clipboard.writeText(driveUrl).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = '✅ Copied!';
+                    btn.classList.add('bg-green-600');
+                    btn.classList.remove('bg-gray-700');
+                    
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.classList.remove('bg-green-600');
+                        btn.classList.add('bg-gray-700');
+                    }, 2000);
+                }).catch(err => {
+                    alert('Failed to copy link');
+                    console.error('Copy error:', err);
+                });
+            }
         }
 
         /**
@@ -254,6 +371,11 @@
         function toggleAdminPanel() {
             const panel = document.getElementById('adminPanel');
             panel.classList.toggle('hidden');
+            
+            if (!panel.classList.contains('hidden')) {
+                // Scroll to admin panel
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         /**
@@ -267,29 +389,52 @@
             const adminMessage = document.getElementById('adminMessage');
 
             if (!title || !driveId) {
-                adminMessage.innerHTML = '<p class="text-red-400">Title and Drive ID are required!</p>';
+                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Title and Drive ID are required!</p>';
                 return;
             }
+
+            // Show loading state
+            adminMessage.innerHTML = '<p class="text-blue-400">⏳ Adding movie...</p>';
 
             const newMovieRef = database.ref('movies').push();
             newMovieRef.set({
                 title: title,
                 year: year || null,
                 posterUrl: posterUrl || null,
-                driveId: driveId
+                driveId: driveId,
+                addedAt: Date.now()
             })
             .then(() => {
-                adminMessage.innerHTML = '<p class="text-green-400">Movie added successfully!</p>';
+                adminMessage.innerHTML = '<p class="text-green-400">✅ Movie added successfully!</p>';
                 // Clear form
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newYear').value = '';
                 document.getElementById('newPoster').value = '';
                 document.getElementById('newDriveId').value = '';
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    adminMessage.innerHTML = '';
+                }, 3000);
             })
             .catch((error) => {
-                adminMessage.innerHTML = `<p class="text-red-400">Error: ${error.message}</p>`;
+                adminMessage.innerHTML = `<p class="text-red-400">❌ Error: ${error.message}</p>`;
             });
         }
+
+        // Close modal when clicking outside
+        document.getElementById('movieModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
 
         // Load movies when page loads
         document.addEventListener('DOMContentLoaded', () => {
