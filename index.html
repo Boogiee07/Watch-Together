@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Together - Real-time Video Sync</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            overflow-x: hidden;
+        }
+        .upload-progress {
+            transition: width 0.3s ease;
+        }
+        video::-webkit-media-controls-panel {
+            display: none !important;
+        }
+        video::-webkit-media-controls {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div id="app"></div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p class="text-white text-center font-semibold">Processing...</p>
+            <p id="loadingText" class="text-white/70 text-center text-sm mt-2"></p>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsRmqn4UU6Ots1Yx8m69T6gHAgEeQGcW8",
+            authDomain: "watch-together-80f0e.firebaseapp.com",
+            databaseURL: "https://watch-together-80f0e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "watch-together-80f0e",
+            storageBucket: "watch-together-80f0e.firebasestorage.app",
+            messagingSenderId: "1091604037251",
+            appId: "1:1091604037251:web:d59e47e5ce5ccc479be5b6",
+            measurementId: "G-R8PDK3MTS4"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const storage = firebase.storage();
+
+        // App state
+        const state = {
+            roomId: '',
+            isInRoom: false,
+            isPlaying: false,
+            currentTime: 0,
+            duration: 0,
+            isScreenSharing: false,
+            isHost: false,
+            viewers: 1,
+            videoUrl: '',
+            videoFileName: '',
+            copied: false,
+            userId: `user_${Math.random().toString(36).substr(2, 9)}`,
+            lastUpdate: 0,
+            screenStream: null,
+            roomRef: null,
+            uploadProgress: 0,
+            isUploading: false,
+            volume: 1,
+            isMuted: false
+        };
+
+        // Utility Functions
+        function showLoading(text = 'Processing...') {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        // Join or create room
+        function joinRoom(id) {
+            showLoading('Joining room...');
+            state.roomId = id;
+            state.roomRef = db.ref(`rooms/${id}`);
+            
+            state.roomRef.once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    state.isHost = false;
+                    const data = snapshot.val();
+                    state.isPlaying = data.isPlaying || false;
+                    state.currentTime = data.currentTime || 0;
+                    state.videoUrl = data.videoUrl || '';
+                    state.videoFileName = data.videoFileName || '';
+                    state.duration = data.duration || 0;
+                    
+                    setTimeout(() => {
+                        const video = document.getElementById('videoPlayer');
+                        if (video && state.videoUrl) {
+                            video.src = state.videoUrl;
+                            video.currentTime = data.currentTime || 0;
+                            if (state.isPlaying) {
+                                video.play().catch(e => console.log('Autoplay prevented'));
+                            }
+                        }
+                    }, 100);
+                } else {
+                    state.isHost = true;
+                    state.roomRef.set({
+                        isPlaying: false,
+                        currentTime: 0,
+                        duration: 0,
+                        videoUrl: '',
+                        videoFileName: '',
+                        host: state.userId,
+                        createdAt: Date.now()
+                    });
+                }
+                
+                state.isInRoom = true;
+                hideLoading();
+                render();
+                setupRoomListeners();
+            }).catch(error => {
+                console.error('Error joining room:', error);
+                alert('Failed to join room. Please try again.');
+                hideLoading();
+            });
+        }
+
+        // Setup room listeners
+        function setupRoomListeners() {
+            // Listen to room updates
+            state.roomRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const now = Date.now();
+                    
+                    // Throttle updates to 60 FPS
+                    if (now - state.lastUpdate > 16) {
+                        const video = document.getElementById('videoPlayer');
+                        
+                        // Sync time if difference is significant
+                        if (video && !state.isScreenSharing && Math.abs(video.currentTime - data.currentTime) > 1) {
+                            video.currentTime = data.currentTime;
+                        }
+                        
+                        // Sync play state
+                        if (data.isPlaying !== state.isPlaying) {
+                            state.isPlaying = data.isPlaying;
+                            if (video && !state.isScreenSharing) {
+                                if (data.isPlaying) {
+                                    video.play().catch(e => console.log('Play prevented'));
+                                } else {
+                                    video.pause();
+                                }
+                            }
+                        }
+                        
+                        // Update video URL if changed
+                        if (data.videoUrl !== state.videoUrl && !state.isScreenSharing) {
+                            state.videoUrl = data.videoUrl;
+                            state.videoFileName = data.videoFileName || '';
+                            if (video && data.videoUrl) {
+                                video.src = data.videoUrl;
+                                video.currentTime = data.currentTime || 0;
+                            }
+                        }
+                        
+                        if (data.duration) {
+                            state.duration = data.duration;
+                        }
+                        
+                        state.lastUpdate = now;
+                        render();
+                    }
+                }
+            });
+
+            // Track viewers
+            const viewersRef = db.ref(`rooms/${state.roomId}/viewers`);
+            const userRef = viewersRef.child(state.userId);
+            userRef.set({
+                joinedAt: Date.now(),
+                userId: state.userId
+            });
+            userRef.onDisconnect().remove();
+
+            viewersRef.on('value', (snapshot) => {
+                state.viewers = snapshot.numChildren();
+                render();
+            });
+
+            // Sync time periodically when host is playing
+            setInterval(() => {
+                if (state.isPlaying && state.isHost && !state.isScreenSharing) {
+                    const video = document.getElementById('videoPlayer');
+                    if (video && !isNaN(video.currentTime)) {
+                        updateRoom({ 
+                            currentTime: video.currentTime,
+                            duration: video.duration || state.duration
+                        });
+                    }
+                }
+            }, 1000);
+        }
+
+        // Update room state
+        function updateRoom(updates) {
+            if (state.roomRef) {
+                state.roomRef.update(updates).catch(e => console.error('Update error:', e));
+            }
+        }
+
+        // Toggle play/pause
+        function togglePlay() {
+            const video = document.getElementById('videoPlayer');
+            if (!video || (!state.videoUrl && !state.isScreenSharing)) return;
+            
+            state.isPlaying = !state.isPlaying;
+            
+            if (state.isPlaying) {
+                video.play().catch(e => {
+                    console.error('Play error:', e);
+                    state.isPlaying = false;
+                });
+            } else {
+                video.pause();
+            }
+            
+            updateRoom({
+                isPlaying: state.isPlaying,
+                currentTime: video.currentTime || 0
+            });
+            render();
+        }
+
+        // Seek video
+        function seekVideo(percentage) {
+            if (!state.isHost) return;
+            const video = document.getElementById('videoPlayer');
+            if (!video || !state.duration) return;
+            
+            const newTime = (percentage / 100) * state.duration;
+            video.currentTime = newTime;
+            state.currentTime = newTime;
+            
+            updateRoom({ currentTime: newTime });
+            render();
+        }
+
+        // Volume control
+        function changeVolume(value) {
+            const video = document.getElementById('videoPlayer');
+            if (!video) return;
+            
+            state.volume = value / 100;
+            video.volume = state.volume;
+            state.isMuted = state.volume === 0;
+            render();
+        }
+
+        function toggleMute() {
+            const video = document.getElementById('videoPlayer');
+            if (!video) return;
+            
+            state.isMuted = !state.isMuted;
+            video.muted = state.isMuted;
+            render();
+        }
+
+        // Handle file upload to Firebase Storage
+        async function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            // Check file size (limit to 5GB)
+            if (file.size > 5 * 1024 * 1024 * 1024) {
+                alert('File is too large. Please upload a video smaller than 5GB.');
+                input.value = '';
+                return;
+            }
+            
+            showLoading('Uploading video...');
+            state.isUploading = true;
+            state.uploadProgress = 0;
+            render();
+            
+            try {
+                // Create a reference to Firebase Storage
+                const storageRef = storage.ref();
+                const videoRef = storageRef.child(`videos/${state.roomId}/${Date.now()}_${file.name}`);
+                
+                // Upload file
+                const uploadTask = videoRef.put(file);
+                
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Progress
+                        state.uploadProgress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        document.getElementById('loadingText').textContent = `Uploading... ${Math.round(state.uploadProgress)}%`;
+                    },
+                    (error) => {
+                        // Error
+                        console.error('Upload error:', error);
+                        alert('Upload failed. Please try again.');
+                        state.isUploading = false;
+                        hideLoading();
+                        input.value = '';
+                        render();
+                    },
+                    async () => {
+                        // Complete
+                        try {
+                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                            state.videoUrl = downloadURL;
+                            state.videoFileName = file.name;
+                            state.isUploading = false;
+                            
+                            // Update video player
+                            const video = document.getElementById('videoPlayer');
+                            if (video) {
+                                video.src = downloadURL;
+                                video.load();
+                                
+                                video.onloadedmetadata = () => {
+                                    state.duration = video.duration;
+                                    updateRoom({ 
+                                        videoUrl: downloadURL,
+                                        videoFileName: file.name,
+                                        duration: video.duration
+                                    });
+                                };
+                            }
+                            
+                            hideLoading();
+                            render();
+                            input.value = '';
+                        } catch (error) {
+                            console.error('Error getting download URL:', error);
+                            alert('Failed to get video URL. Please try again.');
+                            hideLoading();
+                        }
+                    }
+                );
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Upload failed. Please try again.');
+                state.isUploading = false;
+                hideLoading();
+                input.value = '';
+                render();
+            }
+        }
+
+        // Handle video URL
+        function handleVideoUrl(url) {
+            if (!url.trim()) return;
+            
+            state.videoUrl = url;
+            const video = document.getElementById('videoPlayer');
+            if (video) {
+                video.src = url;
+                video.load();
+                
+                video.onloadedmetadata = () => {
+                    state.duration = video.duration;
+                    updateRoom({ 
+                        videoUrl: url,
+                        videoFileName: url.split('/').pop(),
+                        duration: video.duration
+                    });
+                };
+            }
+            render();
+        }
+
+        // Toggle screen share
+        async function toggleScreenShare() {
+            if (!state.isScreenSharing) {
+                try {
+                    showLoading('Starting screen share...');
+                    
+                    const stream = await navigator.mediaDevices.getDisplayMedia({
+                        video: {
+                            frameRate: { ideal: 60, max: 60 },
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        },
+                        audio: true
+                    });
+
+                    state.screenStream = stream;
+                    state.isScreenSharing = true;
+                    state.isPlaying = true;
+                    
+                    hideLoading();
+                    render();
+                    
+                    setTimeout(() => {
+                        const video = document.getElementById('videoPlayer');
+                        if (video) {
+                            video.srcObject = stream;
+                            video.muted = true;
+                            video.play().catch(e => console.error('Play error:', e));
+                        }
+                    }, 100);
+
+                    stream.getVideoTracks()[0].onended = () => {
+                        stopScreenShare();
+                    };
+
+                    updateRoom({ 
+                        isScreenSharing: true, 
+                        screenHost: state.userId,
+                        isPlaying: true 
+                    });
+                } catch (error) {
+                    console.error('Screen share error:', error);
+                    if (error.name === 'NotAllowedError') {
+                        alert('Screen sharing permission denied. Please allow screen sharing to continue.');
+                    } else {
+                        alert('Screen sharing failed. Please try again.');
+                    }
+                    state.isScreenSharing = false;
+                    hideLoading();
+                    render();
+                }
+            } else {
+                stopScreenShare();
+            }
+        }
+
+        // Stop screen share
+        function stopScreenShare() {
+            if (state.screenStream) {
+                state.screenStream.getTracks().forEach(track => track.stop());
+                state.screenStream = null;
+            }
+            
+            state.isScreenSharing = false;
+            state.isPlaying = false;
+            
+            updateRoom({ 
+                isScreenSharing: false, 
+                screenHost: null,
+                isPlaying: false 
+            });
+            
+            render();
+            
+            setTimeout(() => {
+                const video = document.getElementById('videoPlayer');
+                if (video) {
+                    video.srcObject = null;
+                    video.muted = false;
+                    if (state.videoUrl) {
+                        video.src = state.videoUrl;
+                    }
+                }
+            }, 100);
+        }
+
+        // Copy room ID
+        function copyRoomId() {
+            navigator.clipboard.writeText(state.roomId).then(() => {
+                state.copied = true;
+                render();
+                setTimeout(() => {
+                    state.copied = false;
+                    render();
+                }, 2000);
+            }).catch(e => {
+                alert('Failed to copy room ID');
+            });
+        }
+
+        // Leave room
+        function leaveRoom() {
+            if (state.roomRef) {
+                db.ref(`rooms/${state.roomId}/viewers/${state.userId}`).remove();
+            }
+            
+            if (state.isScreenSharing) {
+                stopScreenShare();
+            }
+            
+            state.isInRoom = false;
+            state.roomId = '';
+            state.videoUrl = '';
+            state.isPlaying = false;
+            render();
+        }
+
+        // Render function
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (!state.isInRoom) {
+                app.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center p-4">
+                        <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/20">
+                            <div class="text-center mb-8">
+                                <h1 class="text-5xl font-bold text-white mb-2">🎬 Watch Together</h1>
+                                <p class="text-white/70">Real-time video synchronization</p>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <button onclick="joinRoom(generateRoomId())" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-4 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg">
+                                    🚀 Create New Room
+                                </button>
+                                
+                                <div class="relative">
+                                    <div class="absolute inset-0 flex items-center">
+                                        <div class="w-full border-t border-white/30"></div>
+                                    </div>
+                                    <div class="relative flex justify-center text-sm">
+                                        <span class="px-2 bg-transparent text-white/70">or</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <input id="roomInput" type="text" placeholder="Enter Room ID" class="w-full bg-white/20 border border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase" onkeypress="if(event.key==='Enter' && this.value.trim()) joinRoom(this.value.trim().toUpperCase())">
+                                    <button onclick="const input = document.getElementById('roomInput'); if(input.value.trim()) joinRoom(input.value.trim().toUpperCase())" class="w-full bg-white/20 hover:bg-white/30 text-white font-semibold py-3 px-6 rounded-xl transition-all border border-white/30">
+                                        🔗 Join Room
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 p-4 bg-white/5 rounded-xl border border-white/10">
+                                <h3 class="text-white font-semibold mb-2">✨ Features:</h3>
+                                <ul class="text-white/70 text-sm space-y-1">
+                                    <li>• Real-time video sync</li>
+                                    <li>• 60 FPS screen sharing</li>
+                                    <li>• Upload MP4 videos</li>
+                                    <li>• Multi-viewer support</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const progressPercent = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0;
+                
+                app.innerHTML = `
+                    <div class="min-h-screen p-4">
+                        <div class="max-w-6xl mx-auto">
+                            <!-- Header -->
+                            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-4 md:p-6 shadow-2xl border border-white/20 mb-4">
+                                <div class="flex items-center justify-between flex-wrap gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <button onclick="leaveRoom()" class="bg-red-500/20 hover:bg-red-500/30 text-red-200 px-4 py-2 rounded-lg transition-all border border-red-500/30 font-semibold">
+                                            ← Leave
+                                        </button>
+                                        <div>
+                                            <h2 class="text-xl md:text-2xl font-bold text-white">Room: ${state.roomId}</h2>
+                                            ${state.videoFileName ? `<p class="text-white/60 text-sm">${state.videoFileName}</p>` : ''}
+                                        </div>
+                                        <button onclick="copyRoomId()" class="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg transition-all text-sm">
+                                            ${state.copied ? '✓ Copied!' : '📋 Copy ID'}
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2 text-white bg-white/20 px-4 py-2 rounded-lg">
+                                            <span class="text-lg">👥</span>
+                                            <span class="font-semibold">${state.viewers}</span>
+                                        </div>
+                                        
+                                        ${state.isHost ? `
+                                            <button onclick="toggleScreenShare()" class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold ${
+                                                state.isScreenSharing
+                                                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                                                    : 'bg-green-500 hover:bg-green-600 text-white'
+                                            }">
+                                                <span class="text-lg">${state.isScreenSharing ? '🛑' : '📺'}</span>
+                                                <span class="hidden sm:inline">${state.isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Video Player -->
+                            <div class="bg-black rounded-2xl overflow-hidden shadow-2xl mb-4 relative">
+                                <video 
+                                    id="videoPlayer" 
+                                    class="w-full aspect-video bg-black" 
+                                    ${state.videoUrl && !state.isScreenSharing ? `src="${state.videoUrl}"` : ''} 
+                                    ontimeupdate="state.currentTime = this.currentTime; render()" 
+                                    onloadedmetadata="state.duration = this.duration; render()"
+                                    autoplay 
+                                    playsinline
+                                    ${state.isScreenSharing ? 'muted' : ''}
+                                ></video>
+                                
+                                ${!state.videoUrl && !state.isScreenSharing ? `
+                                    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/50 to-blue-900/50">
+                                        <div class="text-center">
+                                            <div class="text-6xl mb-4">🎬</div>
+                                            <p class="text-white text-xl font-semibold">No video loaded</p>
+                                            <p class="text-white/70 mt-2">${state.isHost ? 'Upload a video or share your screen' : 'Waiting for host to start'}</p>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Controls -->
+                            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-4 md:p-6 shadow-2xl border border-white/20">
+                                ${state.isHost && !state.isScreenSharing ? `
+                                    <div class="mb-6 space-y-4">
+                                        <div>
+                                            <label class="block text-white text-sm font-semibold mb-2">📁 Upload Video (Max 5GB)</label>
+                                            <input 
+                                                id="videoFileInput" 
+                                                type="file" 
+                                                accept="video/mp4,video/webm,video/ogg" 
+                                                ${state.isUploading ? 'disabled' : ''}
+                                                class="w-full bg-white/20 border border-white/30 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600 file:cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                                onchange="handleFileUpload(this)"
+                                            >
+                                        </div>
+                                        
+                                        <div class="relative">
+                                            <div class="absolute inset-0 flex items-center">
+                                                <div class="w-full border-t border-white/30"></div>
+                                            </div>
+                                            <div class="relative flex justify-center text-sm">
+                                                <span class="px-2 bg-transparent text-white/70">or</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-white text-sm font-semibold mb-2">🔗 Video URL</label>
+                                            <div class="flex gap-2">
+                                                <input 
+                                                    id="videoUrlInput" 
+                                                    type="text" 
+                                                    placeholder="https://example.com/video.mp4" 
+                                                    value="${state.videoUrl}" 
+                                                    class="flex-1 bg-white/20 border border-white/30 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                >
+                                                <button onclick="handleVideoUrl(document.getElementById('videoUrlInput').value)" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold transition-all">
+                                                    Load
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Progress Bar -->
+                                ${state.duration > 0 ? `
+                                    <div class="mb-4">
+                                        <div class="flex justify-between text-white text-sm mb-2">
+                                            <span>${formatTime(state.currentTime)}</span>
+                                            <span>${formatTime(state.duration)}</span>
+                                        </div>
+                                        <div class="w-full bg-white/20 rounded-full h-2 cursor-pointer" onclick="if(state.isHost) { const rect = this.getBoundingClientRect(); const percent = ((event.clientX - rect.left) / rect.width) * 100; seekVideo(percent); }">
+                                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all" style="width: ${progressPercent}%"></div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Playback Controls -->
+                                <div class="flex items-center justify-between gap-4 flex-wrap">
+                                    <div class="flex items-center gap-3">
+                                        <button 
+                                            onclick="togglePlay()" 
+                                            ${(!state.videoUrl && !state.isScreenSharing) ? 'disabled' : ''} 
+                                            class="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                                        >
+                                            <span class="text-xl">${state.isPlaying ? '⏸️' : '▶️'}</span>
+                                            <span>${state.isPlaying ? 'Pause' : 'Play'}</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-3">
+                                        <button onclick="toggleMute()" class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg transition-all">
+                                            <span class="text-xl">${state.isMuted || state.volume === 0 ? '🔇' : state.volume < 0.5 ? '🔉' : '🔊'}</span>
+                                        </button>
+                                        <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            value="${state.volume * 100}" 
+                                            onchange="changeVolume(this.value)"
+                                            class="w-24 accent-purple-500"
+                                        >
+                                    </div>
+                                </div>
+                                
+                                ${!state.isHost ? `
+                                    <div class="mt-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                                        <p class="text-blue-200 text-sm text-center">
+                                            ℹ️ You're a viewer. Only the host can control playback and upload videos.
+                                        </p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initial render
+        render();
+        
+        // Handle page visibility change (sync when tab becomes visible)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && state.isInRoom && state.roomRef) {
+                state.roomRef.once('value', (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        const video = document.getElementById('videoPlayer');
+                        if (video && !state.isScreenSharing) {
+                            video.currentTime = data.currentTime || 0;
+                            if (data.isPlaying) {
+                                video.play().catch(e => console.log('Play prevented'));
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
