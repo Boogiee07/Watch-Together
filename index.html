@@ -31,22 +31,28 @@
         .loading {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+        .source-tab {
+            transition: all 0.2s;
+        }
+        .source-tab.active {
+            background: linear-gradient(to right, #6366f1, #8b5cf6);
+            color: white;
+        }
     </style>
 </head>
 <body class="text-white">
 
-    <!-- Navigation Bar -->
     <header class="bg-gray-900 shadow-lg sticky top-0 z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0">
-                    <span class="text-2xl font-bold text-indigo-400">MovieVault</span>
+                    <span class="text-2xl font-bold text-indigo-400">🎬 MovieVault</span>
                 </div>
                 
                 <nav class="hidden sm:ml-6 sm:flex sm:space-x-8">
                     <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Home</a>
-                    <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">About</a>
-                    <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Contact</a>
+                    <a href="#library" class="text-gray-300 hover:bg-gray-700 
+hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150">Library</a>
                 </nav>
 
                 <div class="flex-1 max-w-lg mx-4">
@@ -58,67 +64,314 @@
                             class="w-full pl-10 pr-4 py-2 text-sm text-white bg-gray-700 border border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
                             onkeyup="filterMovies()"
                         >
-                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 
+h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <span id="adminStatus" 
+class="text-sm text-gray-400 hidden">User Mode</span>
+                    <button onclick="showAdminLogin()" id="adminLoginBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150 text-sm">
+                        🔐 Admin Login
+                    </button>
+                    
+<button onclick="adminLogout()" id="adminLogoutBtn" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-150 text-sm">
+                        🚪 Logout
+                    </button>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Area -->
+   
+ <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl max-w-md w-full border border-gray-700">
+            <div class="bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-700">
+                <h3 class="text-xl font-bold text-white">🔐 Admin Login</h3>
+                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-white transition">
+     
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+         
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Admin Email</label>
+                        <input 
+                            type="email" 
+                            id="adminEmail" 
+                            placeholder="Enter admin email"
+                            class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Admin Password</label>
+     
+                        <input 
+                            type="password" 
+                            id="adminPassword" 
+                      
+                            placeholder="Enter admin password"
+                            class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            onkeypress="if(event.key==='Enter') adminLogin()"
+                        >
+ 
+                    </div>
+                </div>
+                
+                <button onclick="adminLogin()" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                    🔓 
+ Login
+                </button>
+                <div id="loginMessage" class="mt-4 text-sm text-center"></div>
+                
+            </div>
+        </div>
+    </div>
+
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <h1 class="text-3xl font-extrabold text-indigo-300 mb-6 border-b border-gray-700 pb-2">Your Google Drive Movie Library</h1>
+      
+        <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+            <h1 class="text-3xl font-extrabold text-indigo-300">Your Movie Library</h1>
+            <button onclick="toggleAdminPanel()" id="adminPanelBtn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-150">
+                ⚙️ Admin Panel
+            </button>
+        </div>
         
-        <!-- Loading Indicator -->
-        <div id="loadingIndicator" class="text-center py-20">
+     
+    <div id="loadingIndicator" class="text-center py-20">
             <div class="inline-block loading">
                 <svg class="animate-spin h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                 
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             </div>
             <p class="text-gray-400 mt-4">Loading movies from Firebase...</p>
         </div>
 
-        <!-- Movie List Container (Grid) -->
-        <div id="movieList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 hidden">
+        <div 
+id="movieList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 hidden">
         </div>
 
-        <!-- No Results Message -->
         <div id="noResults" class="hidden text-center py-20">
-            <p class="text-xl text-gray-400">No movies found matching your search. Try a different title!</p>
+            <p class="text-xl text-gray-400">No movies found matching your search.
+Try a different title!</p>
         </div>
 
-        <!-- Error Message -->
         <div id="errorMessage" class="hidden text-center py-20">
-            <p class="text-xl text-red-400">Failed to load movies. Please check your connection.</p>
+            <p class="text-xl text-red-400">Failed to load movies.
+Please check your connection.</p>
         </div>
 
-        <!-- Admin Panel (Toggle) -->
-        <div class="mt-12 border-t border-gray-700 pt-8">
-            <button onclick="toggleAdminPanel()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-150">
-                Toggle Admin Panel
-            </button>
-            
-            <div id="adminPanel" class="hidden mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div id="adminPanel" class="hidden mt-12 border-t border-gray-700 pt-8">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
                 <h2 class="text-2xl font-bold text-indigo-300 mb-4">Add New Movie</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" id="newTitle" placeholder="Movie Title" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="number" id="newYear" placeholder="Year" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="text" id="newPoster" placeholder="Poster URL" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="text" id="newDriveId" placeholder="Google Drive File ID" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="space-y-4">
+       
+                     <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Movie Title *</label>
+                        <input type="text" id="newTitle" placeholder="Enter movie title" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                
+         </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Year</label>
+               
+                            <input type="number" id="newYear" placeholder="2024" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                         
+                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID</label>
+                            <input type="text" id="newTmdbId" placeholder="550 (for Fight Club)" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+  
+                   <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
+                        <input type="text" id="newPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              
+               </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Direct Movie URL (Optional)</label>
+                        <input type="text" id="newMovieUrl" placeholder="https://your-streaming-url.com/movie.mp4" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    
+                        <p class="text-xs text-gray-400 mt-1">💡 Leave empty to use TMDB ID with multiple streaming sources</p>
+                    </div>
                 </div>
-                <button onclick="addMovie()" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition duration-150">
-                    Add Movie to Firebase
-                </button>
+                <div class="flex gap-3 mt-6">
+            
+                    <button onclick="addMovie()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        ➕ Add Movie to Firebase
+                    </button>
+                    <button onclick="toggleAdminPanel()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150">
+    
+                        Cancel
+                    </button>
+                </div>
                 <div id="adminMessage" class="mt-4 text-sm"></div>
+                
+         
+                <div class="mt-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                    <p class="text-sm text-blue-200 font-semibold mb-2">📝 How to find TMDB ID:</p>
+                    <ol class="text-xs text-blue-100 space-y-1 list-decimal list-inside">
+                        <li>Go to <a href="https://www.themoviedb.org/" target="_blank" class="underline">themoviedb.org</a></li>
+    
+                        <li>Search for your movie</li>
+                        <li>Look at the URL: themoviedb.org/movie/<strong>TMDB_ID</strong>-movie-name</li>
+                        <li>Copy the ID number and paste it above</li>
+                  
+                    </ol>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Firebase SDK -->
+    <div id="movieModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-700">
+            <div class="bg-gray-800 px-6 py-4 flex 
+justify-between items-center border-b border-gray-700">
+                <h3 id="modalTitle" class="text-xl font-bold text-white"></h3>
+                <div class="flex gap-2">
+                    <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-white transition px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg" title="Fullscreen">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 
+24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                        </svg>
+                    </button>
+          
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-white transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  
+                    </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 px-6 py-3 border-b border-gray-700">
+ 
+                <div class="flex gap-2 overflow-x-auto">
+                    <button onclick="switchSource('vidsrc')" class="source-tab active px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="vidsrc">
+                        VidSrc
+                    </button>
+     
+                    <button onclick="switchSource('embedsu')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="embedsu">
+                        Embed.su
+                    </button>
+                    <button onclick="switchSource('2embed')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 
+hover:bg-gray-600 transition whitespace-nowrap" data-source="2embed">
+                        2Embed
+                    </button>
+                    <button onclick="switchSource('moviesapi')" class="source-tab px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 hover:bg-gray-600 transition whitespace-nowrap" data-source="moviesapi">
+                     
+                        MoviesAPI
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="aspect-video bg-black rounded-lg overflow-hidden mb-4">
+   
+                    <iframe 
+                        id="moviePlayer" 
+                        src="" 
+                        class="w-full h-full" 
+      
+                        allowfullscreen
+                        allow="autoplay;
+fullscreen; picture-in-picture"
+                        referrerpolicy="origin"
+                    ></iframe>
+                </div>
+                <div class="flex gap-3 flex-wrap">
+                    
+<button onclick="openInNewTab()" class="flex-1 min-w-[200px] bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        🚀 Open in New Tab
+                    </button>
+                    <button onclick="copyMovieLink()" class="flex-1 min-w-[200px] bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+        
+                        📋 Copy Link
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-3 text-center">
+                    💡 Try different sources if one 
+ doesn't work. Quality may vary by source.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl max-w-2xl w-full border border-gray-700">
+            <div class="bg-gray-800 px-6 py-4 flex 
+justify-between items-center border-b border-gray-700">
+                <h3 class="text-xl font-bold text-white">✏️ Edit Movie</h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-4">
+      
+                    <input type="hidden" id="editMovieId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Movie Title *</label>
+                        <input type="text" id="editTitle" placeholder="Enter movie title" class="w-full px-4 py-2 
+bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                         
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Year</label>
+                            <input type="number" id="editYear" placeholder="2024" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+  
+                            <label class="block text-sm font-medium text-gray-300 mb-2">TMDB ID</label>
+                            <input type="text" id="editTmdbId" placeholder="550" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+  
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Poster URL</label>
+                        <input type="text" id="editPoster" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 
+border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Direct Movie URL</label>
+                       
+                        <input type="text" id="editMovieUrl" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+              
+                    <button onclick="updateMovie()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition duration-150 font-semibold">
+                        💾 Save Changes
+                    </button>
+                    <button onclick="closeEditModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition duration-150">
+        
+                        Cancel
+                    </button>
+                </div>
+                <div id="editMessage" class="mt-4 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <script>
         // Firebase Configuration
@@ -127,52 +380,190 @@
             authDomain: "watch-together-80f0e.firebaseapp.com",
             databaseURL: "https://watch-together-80f0e-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "watch-together-80f0e",
+           
             storageBucket: "watch-together-80f0e.firebasestorage.app",
             messagingSenderId: "1091604037251",
             appId: "1:1091604037251:web:d59e47e5ce5ccc479be5b6",
             measurementId: "G-R8PDK3MTS4"
         };
-
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
+        // Admin details for login/rules check (MUST BE UPDATED)
+        const ADMIN_EMAIL = "your.admin.email@example.com"; // 🚨 REMINDER: Create this user in Firebase Auth. The email for login is now taken from the modal input.
+        const ADMIN_UID = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // 🚨 Replace with your admin user's UID from Firebase Auth console
+        
         let movies = [];
         let filteredMovies = [];
-
+        let currentMovie = null;
+        let currentSource = 'vidsrc';
+        let isAdmin = false;
         const movieListContainer = document.getElementById('movieList');
         const searchBar = document.getElementById('searchBar');
         const noResultsMessage = document.getElementById('noResults');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const errorMessage = document.getElementById('errorMessage');
+        // Streaming source URLs
+        const streamingSources = {
+            vidsrc: (tmdbId) => `https://vidsrc.xyz/embed/movie/${tmdbId}`,
+            embedsu: (tmdbId) => `https://embed.su/embed/movie/${tmdbId}`,
+            '2embed': (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
+            moviesapi: (tmdbId) => `https://moviesapi.club/movie/${tmdbId}`
+        };
+        
+        /**
+         * Checks Firebase Auth status on load
+         */
+        function checkAdminStatus() {
+            // Check auth state from Firebase
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user && user.uid === ADMIN_UID) {
+                    isAdmin = true;
+                    // Persist state in localStorage to manage UI
+                    localStorage.setItem('isAdmin', 'true');
+                } else {
+                    isAdmin = false;
+                    localStorage.removeItem('isAdmin');
+                }
+                updateAdminUI();
+                // Rerender movies to show/hide admin buttons after auth check
+                renderMovies(filteredMovies); 
+            });
+        }
+
+        // Show admin login modal
+        function showAdminLogin() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            // Focus the new email field
+            document.getElementById('adminEmail').focus();
+        }
+
+        // Close login modal
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+            // Clear both email and password fields
+            document.getElementById('adminEmail').value = ''; 
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('loginMessage').innerHTML = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        /**
+         * Admin login using Firebase Email/Password Auth
+         */
+        function adminLogin() {
+            // Read both email and password from the input fields
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            const loginMessage = document.getElementById('loginMessage');
+
+            if (!email || !password) {
+                loginMessage.innerHTML = '<p class="text-red-400">❌ Both email and password are required!</p>';
+                return;
+            }
+
+            loginMessage.innerHTML = '<p class="text-blue-400">⏳ Logging in...</p>';
+
+            // Use the user-entered email and password for sign-in
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Check if the logged-in user's UID matches the hardcoded Admin UID
+                    if (userCredential.user.uid === ADMIN_UID) {
+                        // isAdmin is set in onAuthStateChanged listener, but we update UI directly here for instant feedback
+                        isAdmin = true; 
+                        localStorage.setItem('isAdmin', 'true');
+                        loginMessage.innerHTML = '<p class="text-green-400">✅ Login successful!</p>';
+                        
+                        setTimeout(() => {
+                            closeLoginModal();
+                            updateAdminUI();
+                            renderMovies(filteredMovies);
+                        }, 1000);
+                    } else {
+                         // User authenticated but not the designated Admin UID
+                         firebase.auth().signOut();
+                         loginMessage.innerHTML = '<p class="text-red-400">❌ User is not authorized as admin!</p>';
+                    }
+                })
+                .catch((error) => {
+                    loginMessage.innerHTML = `<p class="text-red-400">❌ Login failed: ${error.message}</p>`;
+                    document.getElementById('adminPassword').value = '';
+                });
+        }
+
+        // Admin logout
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout from admin mode?')) {
+                firebase.auth().signOut()
+                    .then(() => {
+                        isAdmin = false;
+                        localStorage.removeItem('isAdmin');
+                        updateAdminUI();
+                        renderMovies(filteredMovies);
+                        
+                        // Hide admin panel if open
+                        document.getElementById('adminPanel').classList.add('hidden');
+                    })
+                    .catch((error) => {
+                         alert(`Logout failed: ${error.message}`);
+                    });
+            }
+        }
+
+        // Update UI based on admin status
+        function updateAdminUI() {
+            const adminLoginBtn = document.getElementById('adminLoginBtn');
+            const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+            const adminPanelBtn = document.getElementById('adminPanelBtn');
+            const adminStatus = document.getElementById('adminStatus');
+            
+            if (isAdmin) {
+                adminLoginBtn.classList.add('hidden');
+                adminLogoutBtn.classList.remove('hidden');
+                adminPanelBtn.classList.remove('hidden');
+                adminStatus.classList.remove('hidden');
+                adminStatus.textContent = '👑 Admin Mode';
+                adminStatus.classList.remove('text-gray-400');
+                adminStatus.classList.add('text-green-400');
+            } else {
+                adminLoginBtn.classList.remove('hidden');
+                adminLogoutBtn.classList.add('hidden');
+                adminPanelBtn.classList.add('hidden');
+                adminStatus.classList.add('hidden');
+            }
+        }
 
         /**
          * Loads movies from Firebase Realtime Database
          */
         function loadMoviesFromFirebase() {
             const moviesRef = database.ref('movies');
-            
             moviesRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 
                 if (data) {
                     movies = Object.keys(data).map(key => ({
+                    
                         id: key,
                         ...data[key]
                     }));
                     
                     filteredMovies = [...movies];
+         
                     renderMovies(filteredMovies);
                     loadingIndicator.classList.add('hidden');
                     movieListContainer.classList.remove('hidden');
                 } else {
-                    // No movies in database yet
                     movies = [];
+         
                     filteredMovies = [];
                     loadingIndicator.classList.add('hidden');
                     noResultsMessage.classList.remove('hidden');
-                    noResultsMessage.querySelector('p').textContent = 'No movies in database. Use the admin panel to add some!';
+                    noResultsMessage.querySelector('p').textContent = 'No movies in database. Admin can add movies!';
                 }
+  
             }, (error) => {
                 console.error('Firebase error:', error);
                 loadingIndicator.classList.add('hidden');
@@ -185,37 +576,90 @@
          */
         function renderMovies(moviesToDisplay) {
             movieListContainer.innerHTML = '';
-
             if (moviesToDisplay.length === 0) {
                 noResultsMessage.classList.remove('hidden');
                 noResultsMessage.querySelector('p').textContent = 'No movies found matching your search. Try a different title!';
             } else {
                 noResultsMessage.classList.add('hidden');
-                
                 moviesToDisplay.forEach(movie => {
-                    const driveUrl = movie.driveId 
-                        ? `https://drive.google.com/file/d/${movie.driveId}/preview`
-                        : '#';
-                    
-                    const movieCardHtml = `
-                        <div class="movie-card bg-gray-800 rounded-xl overflow-hidden cursor-pointer shadow-xl border border-gray-700">
-                            <img 
-                                src="${movie.posterUrl || 'https://placehold.co/200x300/6D28D9/ffffff?text=' + encodeURIComponent(movie.title)}" 
-                                alt="${movie.title} Poster" 
-                                class="w-full h-auto object-cover border-b border-gray-700"
-                                onerror="this.onerror=null; this.src='https://placehold.co/200x300/000000/FFFFFF?text=No+Poster'"
+                    const adminButtons = isAdmin ? `
+                        <button 
+                            onclick='editMovie(${JSON.stringify(movie)}, event)'
+                   
+                            class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold text-sm"
+                        >
+                            ✏️
+                        </button>
+    
+                    ` : '';
+
+                    const adminCardButtons = isAdmin ? `
+                        <div class="flex gap-2 mt-2">
+                            <button 
+ 
+                                onclick='editMovie(${JSON.stringify(movie)}, event)'
+                                class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
+                           
                             >
-                            
-                            <div class="p-3">
-                                <h3 class="text-lg font-semibold truncate text-indigo-300">${movie.title}</h3>
-                                <p class="text-sm text-gray-400 mt-1">Year: ${movie.year || 'N/A'}</p>
-                                <button 
-                                    onclick="watchMovie('${movie.driveId}', '${movie.title}')"
-                                    class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-1.5 rounded-lg transition duration-150"
+                                ✏️ Edit
+                            </button>
+                            <button 
+         
+                                onclick='deleteMovie(${JSON.stringify(movie)}, event)'
+                                class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
+                            >
+       
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    ` : 
+'';
+
+                    const movieCardHtml = `
+                        <div class="movie-card bg-gray-800 rounded-xl overflow-hidden shadow-xl border border-gray-700">
+                            <div class="relative group">
+                                <img 
+  
+                                    src="${movie.posterUrl || 'https://placehold.co/200x300/6D28D9/ffffff?text=' + encodeURIComponent(movie.title)}" 
+                                    alt="${movie.title} Poster" 
+                       
+                                    class="w-full h-auto object-cover border-b border-gray-700"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/200x300/000000/FFFFFF?text=No+Poster'"
                                 >
-                                    Watch Now
-                                </button>
+              
+                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center">
+                                    <div class="opacity-0 group-hover:opacity-100 flex gap-2">
+                                
+                                        <button 
+                                            onclick='watchMovie(${JSON.stringify(movie)}, event)'
+                                            class="bg-indigo-600 hover:bg-indigo-700 
+text-white px-4 py-2 rounded-full transition-all transform scale-90 group-hover:scale-100 font-semibold text-sm"
+                                        >
+                                            ▶️ Play
+      
+                                        </button>
+                                        ${adminButtons}
+                          
+                                    </div>
+                                </div>
                             </div>
+                            
+  
+                            <div class="p-3">
+                                <h3 class="text-lg font-semibold truncate text-indigo-300" title="${movie.title}">${movie.title}</h3>
+                                <p class="text-sm text-gray-400 mt-1">Year: 
+${movie.year || 'N/A'}</p>
+                                <button 
+                                    onclick='watchMovie(${JSON.stringify(movie)}, event)'
+                            
+                                    class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition duration-150"
+                                >
+                                    🎬 Watch Now
+            
+                                </button>
+                                ${adminCardButtons}
+                            </div>
+                    
                         </div>
                     `;
                     movieListContainer.innerHTML += movieCardHtml;
@@ -231,69 +675,369 @@
             filteredMovies = movies.filter(movie => 
                 movie.title.toLowerCase().includes(searchTerm)
             );
-            
             renderMovies(filteredMovies);
         }
 
         /**
-         * Opens the movie in Google Drive viewer
+         * Opens the movie in a modal player
          */
-        function watchMovie(driveId, title) {
-            if (!driveId) {
-                alert('No Google Drive link available for this movie.');
+        function watchMovie(movie, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            if (!movie.tmdbId && !movie.movieUrl) {
+                alert('No streaming source available for this movie. Please add a TMDB ID or direct URL.');
                 return;
             }
             
-            const driveUrl = `https://drive.google.com/file/d/${driveId}/preview`;
-            window.open(driveUrl, '_blank');
+            currentMovie = movie;
+            currentSource = 'vidsrc';
+            
+            document.getElementById('modalTitle').textContent = movie.title;
+            
+            loadMovieSource(currentSource);
+            
+            document.querySelectorAll('.source-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector('[data-source="vidsrc"]').classList.add('active');
+            
+            document.getElementById('movieModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        /**
+         * Loads movie from specific source
+         */
+        function loadMovieSource(source) {
+            const player = document.getElementById('moviePlayer');
+            if (currentMovie.movieUrl) {
+                player.src = currentMovie.movieUrl;
+            } else if (currentMovie.tmdbId && streamingSources[source]) {
+                player.src = streamingSources[source](currentMovie.tmdbId);
+            } else {
+                alert('Unable to load movie from this source.');
+            }
+        }
+
+        /**
+         * Switches between streaming sources
+         */
+        function switchSource(source) {
+            currentSource = source;
+            loadMovieSource(source);
+            
+            document.querySelectorAll('.source-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Use event.currentTarget for reliability
+            const targetButton = event.currentTarget || document.querySelector(`[data-source="${source}"]`);
+            if(targetButton) {
+                targetButton.classList.add('active');
+            }
+        }
+
+        /**
+         * Toggle fullscreen mode
+         */
+        function toggleFullscreen() {
+            const modal = document.getElementById('movieModal');
+            if (!document.fullscreenElement) {
+                if (modal.requestFullscreen) {
+                    modal.requestFullscreen();
+                } else if (modal.webkitRequestFullscreen) {
+                    modal.webkitRequestFullscreen();
+                } else if (modal.msRequestFullscreen) {
+                    modal.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        /**
+         * Closes the movie modal
+         */
+        function closeModal() {
+            document.getElementById('movieModal').classList.add('hidden');
+            document.getElementById('moviePlayer').src = '';
+            document.body.style.overflow = 'auto';
+            currentMovie = null;
+        }
+
+        /**
+         * Opens the movie in a new tab
+         */
+        function openInNewTab() {
+            if (currentMovie) {
+                let url;
+                if (currentMovie.movieUrl) {
+                    url = currentMovie.movieUrl;
+                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
+                    url = streamingSources[currentSource](currentMovie.tmdbId);
+                }
+                
+                if (url) {
+                    window.open(url, '_blank');
+                }
+            }
+        }
+
+        /**
+         * Copies the movie link to clipboard
+         */
+        function copyMovieLink() {
+            if (currentMovie) {
+                let url;
+                if (currentMovie.movieUrl) {
+                    url = currentMovie.movieUrl;
+                } else if (currentMovie.tmdbId && streamingSources[currentSource]) {
+                    url = streamingSources[currentSource](currentMovie.tmdbId);
+                }
+                
+                if (url) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        const btn = event.target;
+                 
+                        const originalText = btn.textContent;
+                        btn.textContent = '✅ Copied!';
+                        btn.classList.add('bg-green-600');
+                        btn.classList.remove('bg-gray-700');
+               
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.classList.remove('bg-green-600');
+       
+                            btn.classList.add('bg-gray-700');
+                        }, 2000);
+                    }).catch(err => {
+                        alert('Failed to copy link');
+     
+                        console.error('Copy error:', err);
+                    });
+                }
+            }
+        }
+
+        /**
+         * Opens edit modal for a movie (Admin only)
+         */
+        function editMovie(movie, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            if (!isAdmin) {
+                alert('Admin access required to edit movies!');
+                return;
+            }
+            
+            document.getElementById('editMovieId').value = movie.id;
+            document.getElementById('editTitle').value = movie.title || '';
+            document.getElementById('editYear').value = movie.year || '';
+            document.getElementById('editTmdbId').value = movie.tmdbId || '';
+            document.getElementById('editPoster').value = movie.posterUrl || '';
+            document.getElementById('editMovieUrl').value = movie.movieUrl || '';
+            
+            document.getElementById('editModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        /**
+         * Closes the edit modal
+         */
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editMessage').innerHTML = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        /**
+         * Updates a movie in Firebase (Admin only)
+         */
+        function updateMovie() {
+            if (!isAdmin) {
+                alert('Admin access required!');
+                return;
+            }
+
+            const id = document.getElementById('editMovieId').value;
+            const title = document.getElementById('editTitle').value.trim();
+            const year = document.getElementById('editYear').value.trim();
+            const posterUrl = document.getElementById('editPoster').value.trim();
+            const tmdbId = document.getElementById('editTmdbId').value.trim();
+            const movieUrl = document.getElementById('editMovieUrl').value.trim();
+            const editMessage = document.getElementById('editMessage');
+
+            if (!title) {
+                editMessage.innerHTML = '<p class="text-red-400">⚠️ Title is required!</p>';
+                return;
+            }
+
+            if (!tmdbId && !movieUrl) {
+                editMessage.innerHTML = '<p class="text-red-400">⚠️ Either TMDB ID or Movie URL is required!</p>';
+                return;
+            }
+
+            editMessage.innerHTML = '<p class="text-blue-400">⏳ Updating movie...</p>';
+            const movieRef = database.ref('movies/' + id);
+            movieRef.update({
+                title: title,
+                year: year || null,
+                posterUrl: posterUrl || null,
+                tmdbId: tmdbId || null,
+                movieUrl: movieUrl || null,
+ 
+                updatedAt: Date.now()
+            })
+            .then(() => {
+                editMessage.innerHTML = '<p class="text-green-400">✅ Movie updated successfully!</p>';
+                setTimeout(() => {
+                  
+                    closeEditModal();
+                }, 1500);
+            })
+            .catch((error) => {
+                editMessage.innerHTML = `<p class="text-red-400">❌ Error: ${error.message}</p>`;
+            });
+        }
+
+        /**
+         * Deletes a movie from Firebase (Admin only)
+         */
+        function deleteMovie(movie, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            if (!isAdmin) {
+                alert('Admin access required to delete movies!');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete "${movie.title}"? This action cannot be undone.`)) {
+                const movieRef = database.ref('movies/' + movie.id);
+                movieRef.remove()
+                .then(() => {
+                    console.log('Movie deleted successfully');
+                })
+                .catch((error) => {
+                    alert(`Error deleting movie: ${error.message}`);
+   
+                });
+            }
         }
 
         /**
          * Toggles admin panel visibility
          */
         function toggleAdminPanel() {
-            const panel = document.getElementById('adminPanel');
-            panel.classList.toggle('hidden');
-        }
-
-        /**
-         * Adds a new movie to Firebase
-         */
-        function addMovie() {
-            const title = document.getElementById('newTitle').value.trim();
-            const year = document.getElementById('newYear').value.trim();
-            const posterUrl = document.getElementById('newPoster').value.trim();
-            const driveId = document.getElementById('newDriveId').value.trim();
-            const adminMessage = document.getElementById('adminMessage');
-
-            if (!title || !driveId) {
-                adminMessage.innerHTML = '<p class="text-red-400">Title and Drive ID are required!</p>';
+            if (!isAdmin) {
+                alert('Admin access required!');
                 return;
             }
 
+            const panel = document.getElementById('adminPanel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        /**
+         * Adds a new movie to Firebase (Admin only)
+         */
+        function addMovie() {
+            if (!isAdmin) {
+                alert('Admin access required!');
+                return;
+            }
+
+            const title = document.getElementById('newTitle').value.trim();
+            const year = document.getElementById('newYear').value.trim();
+            const posterUrl = document.getElementById('newPoster').value.trim();
+            const tmdbId = document.getElementById('newTmdbId').value.trim();
+            const movieUrl = document.getElementById('newMovieUrl').value.trim();
+            const adminMessage = document.getElementById('adminMessage');
+            if (!title) {
+                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Title is required!</p>';
+                return;
+            }
+
+            if (!tmdbId && !movieUrl) {
+                adminMessage.innerHTML = '<p class="text-red-400">⚠️ Either TMDB ID or Movie URL is required!</p>';
+                return;
+            }
+
+            adminMessage.innerHTML = '<p class="text-blue-400">⏳ Adding movie...</p>';
             const newMovieRef = database.ref('movies').push();
             newMovieRef.set({
                 title: title,
                 year: year || null,
                 posterUrl: posterUrl || null,
-                driveId: driveId
+                tmdbId: tmdbId || null,
+                movieUrl: movieUrl || null,
+   
+                addedAt: Date.now()
             })
             .then(() => {
-                adminMessage.innerHTML = '<p class="text-green-400">Movie added successfully!</p>';
-                // Clear form
+                adminMessage.innerHTML = '<p class="text-green-400">✅ Movie added successfully!</p>';
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newYear').value = '';
+  
                 document.getElementById('newPoster').value = '';
-                document.getElementById('newDriveId').value = '';
+                document.getElementById('newTmdbId').value = '';
+                document.getElementById('newMovieUrl').value = '';
+                
+                setTimeout(() => {
+              
+                    adminMessage.innerHTML = '';
+                }, 3000);
             })
             .catch((error) => {
-                adminMessage.innerHTML = `<p class="text-red-400">Error: ${error.message}</p>`;
+                adminMessage.innerHTML = `<p class="text-red-400">❌ Error: ${error.message}</p>`;
             });
         }
 
-        // Load movies when page loads
+        // Close modals when clicking outside
+        document.getElementById('movieModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+        document.getElementById('loginModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLoginModal();
+            }
+        });
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeEditModal();
+                closeLoginModal();
+            }
+        });
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadMoviesFromFirebase();
+            // checkAdminStatus relies on onAuthStateChanged, which starts listening immediately
+            checkAdminStatus(); 
         });
     </script>
 </body>
