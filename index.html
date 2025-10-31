@@ -74,16 +74,121 @@
             lastUpdate: 0,
             screenStream: null,
             roomRef: null,
-            uploadProgress: 0,
-            isUploading: false,
             volume: 1,
             isMuted: false,
             showDriveInstructions: false,
             showMovieLibrary: false,
             movieLibrary: [],
-            editingMovie: null
+            editingMovie: null,
+            showAddMovie: false
         };
 
+        // Load movie library from storage
+        async function loadMovieLibrary() {
+            try {
+                const result = await window.storage.get('movie-library', true);
+                if (result && result.value) {
+                    state.movieLibrary = JSON.parse(result.value);
+                }
+            } catch (error) {
+                console.log('No existing library or error loading:', error);
+                state.movieLibrary = [];
+            }
+        }
+
+        // Save movie library to storage
+        async function saveMovieLibrary() {
+            try {
+                await window.storage.set('movie-library', JSON.stringify(state.movieLibrary), true);
+            } catch (error) {
+                console.error('Error saving library:', error);
+                alert('Failed to save movie library');
+            }
+        }
+
+        // Add movie to library
+        async function addMovieToLibrary() {
+            const title = document.getElementById('movieTitle')?.value.trim();
+            const url = document.getElementById('movieUrl')?.value.trim();
+            const thumbnail = document.getElementById('movieThumbnail')?.value.trim();
+            
+            if (!title || !url) {
+                alert('Please enter both title and URL');
+                return;
+            }
+            
+            const movie = {
+                id: Date.now().toString(),
+                title,
+                url: convertToDirectLink(url),
+                thumbnail: thumbnail || '🎬',
+                addedBy: state.userId,
+                addedAt: Date.now()
+            };
+            
+            state.movieLibrary.push(movie);
+            await saveMovieLibrary();
+            
+            state.showAddMovie = false;
+            render();
+            
+            alert('Movie added to library!');
+        }
+
+        // Delete movie from library
+        async function deleteMovie(movieId) {
+            if (!confirm('Delete this movie from the library?')) return;
+            
+            state.movieLibrary = state.movieLibrary.filter(m => m.id !== movieId);
+            await saveMovieLibrary();
+            render();
+        }
+
+        // Convert Google Drive link to direct link
+        function convertToDirectLink(url) {
+            // Google Drive file link
+            const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (driveMatch) {
+                return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+            }
+            
+            // Google Drive folder link - return as is (user needs to select specific file)
+            if (url.includes('drive.google.com/drive/folders')) {
+                return url;
+            }
+            
+            // Already a direct link or other service
+            return url;
+        }
+
+        // Load movie from library
+        function loadMovieFromLibrary(movie) {
+            state.showMovieLibrary = false;
+            handleVideoUrl(movie.url, movie.title);
+        }
+
+        // Toggle movie library
+        function toggleMovieLibrary() {
+            state.showMovieLibrary = !state.showMovieLibrary;
+            if (state.showMovieLibrary && state.movieLibrary.length === 0) {
+                loadMovieLibrary().then(render);
+            } else {
+                render();
+            }
+        }
+
+        // Toggle add movie form
+        function toggleAddMovie() {
+            state.showAddMovie = !state.showAddMovie;
+            render();
+        }
+
+        // Toggle drive instructions
+        function toggleDriveInstructions() {
+            state.showDriveInstructions = !state.showDriveInstructions;
+            render();
+        }
+        
         // Utility Functions
         function showLoading(text = 'Processing...') {
             document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -788,6 +893,3 @@
     </script>
 </body>
 </html>
-
-
-
